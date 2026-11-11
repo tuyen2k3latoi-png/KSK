@@ -1,0 +1,410 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Personal medical profile and daily health goals owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Patient full name",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "age": {
+          "type": "number",
+          "description": "Patient age in years"
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["male", "female"]
+        },
+        "heightCm": {
+          "type": "number",
+          "description": "Height in centimeters"
+        },
+        "targetWeightKg": {
+          "type": "number",
+          "description": "Target weight in kilograms"
+        },
+        "bloodType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "primaryDoctor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "emergencyContact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "dailyCalorieGoal": {
+          "type": "number"
+        },
+        "dailyWaterGoalMl": {
+          "type": "number"
+        },
+        "dailyStepsGoal": {
+          "type": "number"
+        },
+        "dailySleepGoalHours": {
+          "type": "number"
+        },
+        "waterIntakeMl": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "uid",
+        "fullName",
+        "age",
+        "gender",
+        "heightCm",
+        "targetWeightKg",
+        "bloodType",
+        "primaryDoctor",
+        "emergencyContact",
+        "dailyCalorieGoal",
+        "dailyWaterGoalMl",
+        "dailyStepsGoal",
+        "dailySleepGoalHours",
+        "waterIntakeMl",
+        "updatedAt"
+      ]
+    },
+    "VitalRecord": {
+      "title": "VitalRecord",
+      "description": "Single biometric vital sign measurement entry.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "time": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "systolic": {
+          "type": "number"
+        },
+        "diastolic": {
+          "type": "number"
+        },
+        "heartRate": {
+          "type": "number"
+        },
+        "spo2": {
+          "type": "number"
+        },
+        "bloodGlucose": {
+          "type": "number"
+        },
+        "glucoseContext": {
+          "type": "string",
+          "enum": ["fasting", "post_meal"]
+        },
+        "weightKg": {
+          "type": "number"
+        },
+        "temperatureC": {
+          "type": "number"
+        },
+        "sleepHours": {
+          "type": "number"
+        },
+        "steps": {
+          "type": "number"
+        },
+        "deviceSource": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "time",
+        "systolic",
+        "diastolic",
+        "heartRate",
+        "spo2",
+        "bloodGlucose",
+        "glucoseContext",
+        "weightKg",
+        "temperatureC",
+        "sleepHours",
+        "steps",
+        "deviceSource",
+        "note",
+        "updatedAt"
+      ]
+    },
+    "MealEntry": {
+      "title": "MealEntry",
+      "description": "Nutrition and macronutrient log entry.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "time": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "mealType": {
+          "type": "string",
+          "enum": ["breakfast", "lunch", "dinner", "snack"]
+        },
+        "foodName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "calories": {
+          "type": "number"
+        },
+        "proteinG": {
+          "type": "number"
+        },
+        "carbsG": {
+          "type": "number"
+        },
+        "fatG": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "time",
+        "mealType",
+        "foodName",
+        "calories",
+        "proteinG",
+        "carbsG",
+        "fatG",
+        "updatedAt"
+      ]
+    },
+    "WorkoutEntry": {
+      "title": "WorkoutEntry",
+      "description": "Physical exercise and calorie expenditure log entry.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "activityName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "durationMinutes": {
+          "type": "number"
+        },
+        "caloriesBurned": {
+          "type": "number"
+        },
+        "intensity": {
+          "type": "string",
+          "enum": ["low", "moderate", "high"]
+        },
+        "avgHeartRate": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "activityName",
+        "durationMinutes",
+        "caloriesBurned",
+        "intensity",
+        "avgHeartRate",
+        "updatedAt"
+      ]
+    },
+    "MedicationItem": {
+      "title": "MedicationItem",
+      "description": "Prescription medication schedule and daily adherence state.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "dosage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "frequency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "scheduleTime": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "takenToday": {
+          "type": "boolean"
+        },
+        "remainingPills": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "dosage",
+        "frequency",
+        "scheduleTime",
+        "instruction",
+        "takenToday",
+        "remainingPills",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private clinical profile and hydration goals for a specific authenticated patient."
+    },
+    "/users/{userId}/vitals/{vitalId}": {
+      "schema": {
+        "$ref": "#/entities/VitalRecord"
+      },
+      "description": "Biometric vital sign records belonging to the authenticated patient."
+    },
+    "/users/{userId}/meals/{mealId}": {
+      "schema": {
+        "$ref": "#/entities/MealEntry"
+      },
+      "description": "Nutrition and meal intake records belonging to the authenticated patient."
+    },
+    "/users/{userId}/workouts/{workoutId}": {
+      "schema": {
+        "$ref": "#/entities/WorkoutEntry"
+      },
+      "description": "Exercise and physical activity logs belonging to the authenticated patient."
+    },
+    "/users/{userId}/medications/{medicationId}": {
+      "schema": {
+        "$ref": "#/entities/MedicationItem"
+      },
+      "description": "Prescription medications and daily adherence tracking belonging to the authenticated patient."
+    }
+  }
+}

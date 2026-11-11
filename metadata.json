@@ -1,0 +1,6 @@
+{
+  "name": "VitaPulse — Hệ thống Theo dõi & Quản lý Sức khỏe Cá nhân",
+  "description": "Hệ thống theo dõi chỉ số sinh tồn, dinh dưỡng, vận động, lịch uống thuốc trên nền tảng Di động & Web Quản lý, kèm hồ sơ Phân tích & Thiết kế hệ thống hoàn chỉnh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
