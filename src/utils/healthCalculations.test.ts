@@ -39,12 +39,33 @@ import {
   writeStorageIfChanged,
 } from './storage';
 import {
+  anonymizeWeeklyHealthData,
+  detectEmergencyGuardrail,
+  MEDICAL_AI_SYSTEM_PROMPT,
+  normalizeFiveLineSummary,
+} from './aiHealthGuardrails';
+import {
+  INITIAL_MEDICATIONS,
+  INITIAL_MEDICAL_PROFILE,
+  INITIAL_VITAL_RECORDS,
+} from '../data/seedHealthData';
+import {
   BhytVisitRecord,
   MealEntry,
   MedicationSchedule,
   VitalRecord,
   WorkoutSchedule,
 } from '../types/health';
+import {
+  createLoginRateLimiter,
+  DEMO_PASSWORD,
+  DEMO_PHONE,
+  evaluatePasswordStrength,
+  mapPhoneToVirtualEmail,
+  normalizeVietnamesePhone,
+  validateVietnamesePhone,
+  verifyDemoCredentials,
+} from '../services/authService';
 
 test('calculateBMI and classifyBMI follow Asian WHO standards', () => {
   const bmi = calculateBMI(66.5, 172);
@@ -776,7 +797,223 @@ test('Stage 1: storage writeStorageIfChanged only writes when serialized value a
   assert.equal(getStorageWriteCountForTest(), 2);
 });
 
+test('Stage 3: anonymizeWeeklyHealthData strips fullName, bhytCode, and cccdNumber from 7-day payload', () => {
+  const anonymized = anonymizeWeeklyHealthData({
+    vitals: INITIAL_VITAL_RECORDS,
+    medications: INITIAL_MEDICATIONS,
+    profile: INITIAL_MEDICAL_PROFILE,
+    userSymptomNote: `Tôi là ${INITIAL_MEDICAL_PROFILE.fullName}, mã thẻ ${INITIAL_MEDICAL_PROFILE.bhytCard?.bhytCode} cảm thấy khỏe.`,
+  });
 
+  const serialized = JSON.stringify(anonymized);
+  assert.equal(serialized.includes(INITIAL_MEDICAL_PROFILE.fullName), false);
+  assert.equal(
+    serialized.includes(INITIAL_MEDICAL_PROFILE.bhytCard?.bhytCode || 'DN4700000000201'),
+    false
+  );
+  assert.equal(
+    serialized.includes(INITIAL_MEDICAL_PROFILE.bhytCard?.cccdNumber || '079000000001'),
+    false
+  );
+  assert.ok(anonymized.sevenDayVitals.length <= 7);
+  assert.ok(anonymized.icdCodes.includes('I10'));
+});
 
+test('Stage 3: detectEmergencyGuardrail triggers 115 alert on chest pain, shortness of breath, or BP >= 180/120', () => {
+  // 1. Normal vitals and normal note -> not emergency
+  const safeCheck = detectEmergencyGuardrail({
+    text: 'Hôm nay đi bộ nhẹ 30 phút, ngủ ngon',
+    systolic: 124,
+    diastolic: 78,
+  });
+  assert.equal(safeCheck.isEmergency, false);
 
+  // 2. Keyword "đau ngực" -> triggers 115 emergency guardrail
+  const chestPainCheck = detectEmergencyGuardrail({
+    text: 'Sáng nay tôi bị đau ngực và mệt',
+    systolic: 128,
+    diastolic: 80,
+  });
+  assert.equal(chestPainCheck.isEmergency, true);
+  assert.ok(chestPainCheck.emergencyCall115Message.includes('115'));
 
+  // 3. Keyword "khó thở" -> triggers 115 emergency guardrail
+  const dyspneaCheck = detectEmergencyGuardrail({
+    text: 'Cảm thấy khó thở khi nằm nghỉ',
+  });
+  assert.equal(dyspneaCheck.isEmergency, true);
+  assert.ok(dyspneaCheck.emergencyCall115Message.includes('115'));
+
+  // 4. Blood pressure >= 180/120 -> triggers 115 emergency guardrail
+  const bpCrisisCheck = detectEmergencyGuardrail({
+    systolic: 185,
+    diastolic: 122,
+  });
+  assert.equal(bpCrisisCheck.isEmergency, true);
+  assert.ok(bpCrisisCheck.emergencyCall115Message.includes('115'));
+});
+
+test('Stage 3: normalizeFiveLineSummary enforces 5 lines and MEDICAL_AI_SYSTEM_PROMPT forbids diagnosis/prescription/dose changes', () => {
+  assert.ok(MEDICAL_AI_SYSTEM_PROMPT.includes('CẤM chẩn đoán'));
+  assert.ok(MEDICAL_AI_SYSTEM_PROMPT.includes('CẤM kê đơn'));
+  assert.ok(MEDICAL_AI_SYSTEM_PROMPT.includes('115'));
+
+  const normalized = normalizeFiveLineSummary([
+    '1. Dòng 1: Huyết áp ổn định.',
+    '2. Dòng 2: Không tự ý đổi liều hoặc kê đơn mới.',
+    '3. Dòng 3: Ngủ đủ giấc.',
+  ]);
+  assert.equal(normalized.length, 5);
+  assert.equal(normalized[1].toLowerCase().includes('kê đơn'), false);
+});
+
+test('Stage 4: technical cleanup verifies vitapulse package name, assetlinks placeholder, DRAFT_firestore.rules removal, and modular files under 300 lines', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  const pkgJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+  assert.equal(pkgJson.name, 'vitapulse');
+  assert.equal(Boolean(pkgJson.dependencies?.motion), false);
+
+  const assetLinks = fs.readFileSync(
+    path.resolve('public/.well-known/assetlinks.json'),
+    'utf8'
+  );
+  assert.ok(assetLinks.includes('GHI_SHA256_THAT_VAO_DAY'));
+
+  assert.equal(fs.existsSync(path.resolve('DRAFT_firestore.rules')), false);
+
+  const modularFilesToVerify = [
+    'src/App.tsx',
+    'src/hooks/useProfile.ts',
+    'src/hooks/useVitals.ts',
+    'src/hooks/useMedications.ts',
+    'src/hooks/useScheduleNotifications.ts',
+    'src/hooks/useAccountActions.ts',
+    'src/components/layout/AppTopHeaderAndNav.tsx',
+    'src/components/layout/PatientIdentityBar.tsx',
+    'src/components/dashboard/CompositeIndexCard.tsx',
+    'src/components/dashboard/PriorityMetricsGrid.tsx',
+    'src/components/dashboard/DashboardDailyChecklists.tsx',
+    'src/components/dashboard/DashboardOverviewView.tsx',
+    'src/components/records/RecordsModuleView.tsx',
+    'src/services/authService.ts',
+    'src/components/LoginScreen.tsx',
+    'src/components/auth/RegisterForm.tsx',
+    'src/components/auth/PostRegisterProfileStep.tsx',
+    'src/components/auth/LoginSocialAndDemoFooter.tsx',
+    'src/components/auth/LoginCareIllustration.tsx',
+    'src/utils/formatters.ts',
+    'src/components/ui/Primitives.tsx',
+    'src/components/ui/BottomNav.tsx',
+  ];
+
+  for (const relPath of modularFilesToVerify) {
+    const content = fs.readFileSync(path.resolve(relPath), 'utf8');
+    const lineCount = content.split('\n').length;
+    assert.ok(
+      lineCount < 300,
+      `Expected ${relPath} to be under 300 lines, but got ${lineCount} lines`
+    );
+  }
+});
+
+test('Auth Redesign: validateVietnamesePhone and normalizeVietnamesePhone validate 10-digit phone starting with 0 and normalize +84', () => {
+  assert.equal(normalizeVietnamesePhone('+84912345678'), '0912345678');
+  assert.equal(normalizeVietnamesePhone('84987654321'), '0987654321');
+  assert.equal(normalizeVietnamesePhone('0912 345 678'), '0912345678');
+
+  const validCheck = validateVietnamesePhone('0912345678');
+  assert.equal(validCheck.valid, true);
+  assert.equal(validCheck.normalizedPhone, '0912345678');
+
+  const validPlus84 = validateVietnamesePhone('+84123456789');
+  assert.equal(validPlus84.valid, true);
+  assert.equal(validPlus84.normalizedPhone, '0123456789');
+
+  const tooShort = validateVietnamesePhone('09123456');
+  assert.equal(tooShort.valid, false);
+  assert.ok(tooShort.error?.includes('10 chữ số'));
+
+  const wrongPrefix = validateVietnamesePhone('1912345678');
+  assert.equal(wrongPrefix.valid, false);
+});
+
+test('Auth Redesign: mapPhoneToVirtualEmail maps valid phone numbers to {sdt}@vitapulse.app', () => {
+  assert.equal(mapPhoneToVirtualEmail('0912345678'), '0912345678@vitapulse.app');
+  assert.equal(mapPhoneToVirtualEmail('+84912345678'), '0912345678@vitapulse.app');
+  assert.equal(mapPhoneToVirtualEmail('0123 456 789'), '0123456789@vitapulse.app');
+  assert.throws(() => mapPhoneToVirtualEmail('12345'));
+});
+
+test('Auth Redesign: verifyDemoCredentials matches 0123456789 / demo@123 with isDemo=true and rejects wrong password', () => {
+  const matched = verifyDemoCredentials(DEMO_PHONE, DEMO_PASSWORD);
+  assert.equal(matched.isDemoMatch, true);
+  assert.equal(matched.account?.isDemo, true);
+  assert.equal(matched.account?.profile.isDemo, true);
+
+  const matchedPlus84 = verifyDemoCredentials('+84123456789', 'demo@123');
+  assert.equal(matchedPlus84.isDemoMatch, true);
+
+  const wrongPass = verifyDemoCredentials(DEMO_PHONE, 'wrongpass');
+  assert.equal(wrongPass.isDemoMatch, false);
+  assert.equal(wrongPass.isDemoPhoneWithWrongPassword, true);
+  assert.ok(wrongPass.error?.includes('chưa đúng'));
+
+  const nonDemoPhone = verifyDemoCredentials('0988776655', 'demo@123');
+  assert.equal(nonDemoPhone.isDemoMatch, false);
+  assert.equal(nonDemoPhone.isDemoPhoneWithWrongPassword, false);
+});
+
+test('Auth Redesign: createLoginRateLimiter locks for 30s after 5 failed attempts and evaluatePasswordStrength checks >= 8 chars', () => {
+  const limiter = createLoginRateLimiter(5, 30_000);
+  const startMs = 1_000_000;
+  for (let i = 1; i <= 4; i++) {
+    const r = limiter.recordFailure(startMs);
+    assert.equal(r.locked, false);
+    assert.equal(r.attemptsLeft, 5 - i);
+  }
+  const fifth = limiter.recordFailure(startMs);
+  assert.equal(fifth.locked, true);
+  assert.equal(fifth.remainingSeconds, 30);
+
+  const midCheck = limiter.getLockStatus(startMs + 10_000);
+  assert.equal(midCheck.locked, true);
+  assert.equal(midCheck.remainingSeconds, 20);
+
+  const expiredCheck = limiter.getLockStatus(startMs + 31_000);
+  assert.equal(expiredCheck.locked, false);
+
+  assert.equal(evaluatePasswordStrength('1234567').valid, false);
+  assert.equal(evaluatePasswordStrength('matkhau123').valid, true);
+  assert.equal(evaluatePasswordStrength('MatKhau@2026').score, 3);
+});
+
+test('Step 1 & 2 Redesign: formatDateDdMmYyyy, formatShortDateDdMm, humanizeDeviceSource, buildVietnameseGreeting, and computeVitalTrend work accurately', async () => {
+  const {
+    formatDateDdMmYyyy,
+    formatShortDateDdMm,
+    formatTime24h,
+    humanizeDeviceSource,
+    buildVietnameseGreeting,
+    computeVitalTrend,
+  } = await import('./formatters');
+
+  assert.equal(formatDateDdMmYyyy('2026-12-05'), '05/12/2026');
+  assert.equal(formatShortDateDdMm('11-04'), '04/11');
+  assert.equal(formatShortDateDdMm('2026-11-09'), '09/11');
+  assert.equal(formatTime24h('7:05'), '07:05');
+  assert.equal(humanizeDeviceSource('Smartwatch BLE'), 'Đồng bộ từ thiết bị');
+
+  const morningGreeting = buildVietnameseGreeting({
+    fullName: 'Nguyễn Minh Quân',
+    gender: 'male',
+    birthYear: 1968,
+    now: new Date('2026-11-11T08:30:00'),
+  });
+  assert.equal(morningGreeting.greetingTitle, 'Chào buổi sáng, chú Quân');
+  assert.ok(morningGreeting.todayFormatted.includes('11/11/2026'));
+
+  const trend = computeVitalTrend(INITIAL_VITAL_RECORDS, (v) => v.systolic, 2);
+  assert.ok(['↑', '↓', '→'].includes(trend.arrow));
+});
