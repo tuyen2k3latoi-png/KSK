@@ -36,10 +36,21 @@ export function useProfile() {
     readStorageJson<PrivacyConsentRecord | null>(STORAGE_KEYS.PRIVACY_CONSENT, null)
   );
 
-  const [fontSizeMode, setFontSizeMode] = useState<FontSizeMode>(() => {
+  const [fontSizeMode, setFontSizeModeState] = useState<FontSizeMode>(() => {
     const saved = readStorageString(STORAGE_KEYS.FONT_SIZE_MODE, 'normal');
-    return saved === 'large' || saved === 'xlarge' ? saved : 'normal';
+    const resolved: FontSizeMode = saved === 'large' || saved === 'xlarge' ? saved : 'normal';
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-font-scale', resolved);
+    }
+    return resolved;
   });
+
+  const setFontSizeMode = (mode: FontSizeMode) => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-font-scale', mode);
+    }
+    setFontSizeModeState(mode);
+  };
 
   const [currentAccountId, setCurrentAccountId] = useState<string>(() =>
     readStorageString(STORAGE_KEYS.ACCOUNT_ID, 'citizen-nguyen-minh-quan')

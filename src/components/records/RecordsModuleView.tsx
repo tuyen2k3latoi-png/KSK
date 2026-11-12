@@ -61,45 +61,55 @@ export const RecordsModuleView: React.FC<RecordsModuleViewProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-slate-200 rounded-xl p-2 flex flex-wrap gap-2">
+      <div
+        role="tablist"
+        aria-label="Chọn mục trong Sổ BHYT và Hồ sơ"
+        className="bg-white border border-stone-200/85 rounded-[20px] p-2 shadow-[0_6px_24px_-6px_rgba(11,95,87,0.08)] flex flex-wrap gap-2"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={recordsSubTab === 'bhyt'}
           onClick={() => onChangeRecordsSubTab('bhyt')}
           data-testid="records-subtab-bhyt"
-          className={`flex-1 min-w-[200px] min-h-[42px] px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[200px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
             recordsSubTab === 'bhyt'
-              ? 'bg-teal-600 text-white shadow-xs'
-              : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              ? 'bg-[#0F766E] text-white shadow-xs'
+              : 'bg-[#FAF7F2] text-[#1F2937] hover:bg-stone-200/60'
           }`}
         >
           <FileHeart className="w-4 h-4 shrink-0" />
-          <span>1. Thẻ BHYT &amp; Bệnh án Đã Khám ({bhytVisits.length})</span>
+          <span>1. Thẻ BHYT &amp; Lịch sử khám ({bhytVisits.length})</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={recordsSubTab === 'history'}
           onClick={() => onChangeRecordsSubTab('history')}
           data-testid="records-subtab-history"
-          className={`flex-1 min-w-[200px] min-h-[42px] px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[200px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
             recordsSubTab === 'history'
-              ? 'bg-teal-600 text-white shadow-xs'
-              : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              ? 'bg-[#0F766E] text-white shadow-xs'
+              : 'bg-[#FAF7F2] text-[#1F2937] hover:bg-stone-200/60'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4 shrink-0" />
-          <span>2. Nhật ký Đo &amp; Tải File Lưu trữ (CSV/JSON)</span>
+          <span>2. Nhật ký đo &amp; Tải sổ (CSV/JSON)</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={recordsSubTab === 'devices'}
           onClick={() => onChangeRecordsSubTab('devices')}
           data-testid="records-subtab-devices"
-          className={`flex-1 min-w-[200px] min-h-[42px] px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[200px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
             recordsSubTab === 'devices'
-              ? 'bg-teal-600 text-white shadow-xs'
-              : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              ? 'bg-[#0F766E] text-white shadow-xs'
+              : 'bg-[#FAF7F2] text-[#1F2937] hover:bg-stone-200/60'
           }`}
         >
           <Bluetooth className="w-4 h-4 shrink-0" />
-          <span>3. Máy đo Bluetooth &amp; Lịch Tái khám</span>
+          <span>3. Thiết bị đo &amp; Lịch tái khám</span>
         </button>
       </div>
 

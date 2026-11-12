@@ -13,19 +13,23 @@
   }
 
   html {
-    font-size: 16px;
+    font-size: 14px;
+    --vp-font-scale: 1;
   }
 
   html[data-font-scale='normal'] {
-    font-size: 16px;
+    font-size: 14px;
+    --vp-font-scale: 1;
   }
 
   html[data-font-scale='large'] {
-    font-size: 18px;
+    font-size: 16.5px;
+    --vp-font-scale: 1.18;
   }
 
   html[data-font-scale='xlarge'] {
-    font-size: 20px;
+    font-size: 19.5px;
+    --vp-font-scale: 1.38;
   }
 
   html,
@@ -36,26 +40,14 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     touch-action: manipulation;
-    line-height: 1.55;
+    line-height: 1.5;
   }
 }
 
-/* Đảm bảo nhãn phụ >= 14px, chữ nội dung >= 16px và đạt tương phản WCAG AA */
-.text-xs,
-.text-\[11px\],
-.text-\[10px\] {
-  font-size: max(14px, 0.875rem) !important;
-  line-height: 1.45 !important;
-}
-
-.text-sm {
-  font-size: max(15px, 0.9375rem) !important;
-  line-height: 1.5 !important;
-}
-
+/* Đảm bảo độ tương phản chữ phụ đạt chuẩn WCAG AA trên nền kem/trắng */
 .text-slate-400,
 .text-slate-500 {
-  color: #374151 !important;
+  color: #4B5563 !important;
 }
 
 /* Bỏ font monospace ở mọi nơi, giữ số liệu thẳng hàng bằng tabular-nums */

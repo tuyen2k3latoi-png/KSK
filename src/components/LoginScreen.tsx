@@ -161,8 +161,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <HeartPulse className="w-6 h-6 text-white stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <span className="block font-extrabold text-[23px] tracking-tight text-white leading-none drop-shadow-xs">VitaPulse</span>
-              <p className="text-[12.5px] font-medium text-white/95 leading-snug mt-0.5 drop-shadow-xs">Đồng hành cùng sức khỏe gia đình bạn</p>
+              <span className="block font-extrabold text-xl tracking-tight text-white leading-none drop-shadow-xs">VitaPulse</span>
+              <p className="text-xs font-medium text-white/95 leading-snug mt-0.5 drop-shadow-xs">Đồng hành cùng sức khỏe gia đình bạn</p>
             </div>
           </div>
 
@@ -196,10 +196,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             className="w-full bg-white/28 backdrop-blur-[4px] rounded-[26px] shadow-[0_20px_48px_-12px_rgba(11,95,87,0.32)] border border-white/80 p-3.5 sm:p-4 space-y-1.5 vp-card-slide-up"
           >
             <div className="space-y-0.5">
-              <h1 className="text-[21px] font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)] tracking-tight leading-tight">
+              <h1 className="text-xl font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)] tracking-tight leading-tight">
                 Chào mừng trở lại
               </h1>
-              <p className="text-[13.5px] font-semibold text-[#173B3A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+              <p className="text-sm font-semibold text-[#173B3A] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
                 Đăng nhập để xem sổ sức khỏe của bạn
               </p>
             </div>
@@ -220,7 +220,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     setErrorMessage(null);
                   }}
                   data-testid={tab === 'login' ? 'tab-login-btn' : 'tab-register-btn'}
-                  className={`min-h-[36px] px-4 py-1 rounded-full text-[14.5px] font-bold transition-all cursor-pointer ${
+                  className={`min-h-[36px] px-4 py-1 rounded-full text-sm font-bold transition-all cursor-pointer ${
                     activeTab === tab
                       ? 'bg-[#0F766E] text-white shadow-xs'
                       : 'text-[#173B3A] hover:bg-white/40'

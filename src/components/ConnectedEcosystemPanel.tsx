@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   Bluetooth,
   Calendar,
-  Cloud,
   CheckCircle2,
-  RefreshCw,
+  Cloud,
+  ExternalLink,
   LogOut,
   Plus,
-  Trash2,
-  AlertTriangle,
-  Activity,
-  ExternalLink,
+  RefreshCw,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import {
@@ -39,6 +38,8 @@ import {
   isWebBluetoothSupported,
   scanAndReadBleMedicalDevice,
 } from '../services/bleService';
+import { formatDateDdMmYyyy, formatTime24h } from '../utils/formatters';
+import { Card } from './ui/Primitives';
 
 interface ConnectedEcosystemPanelProps {
   user: User | null;
@@ -106,7 +107,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
   const [checkupLocation, setCheckupLocation] = useState(profile.hospitalName);
   const [checkupDate, setCheckupDate] = useState('2026-11-15');
   const [checkupTime, setCheckupTime] = useState('08:30');
-  const [checkupDuration, setCheckupDuration] = useState(45);
+  const [checkupDuration] = useState(45);
   const [pendingMutation, setPendingMutation] = useState<PendingCalendarMutation | null>(null);
 
   // Bluetooth BLE State
@@ -146,7 +147,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
     try {
       const res = await googleSignIn();
       onAuthSuccess(res.user, Boolean(res.accessToken));
-      setCloudStatusMsg('Đã xác thực Google & kết nối Firebase Cloud thành công.');
+      setCloudStatusMsg('Đã đăng nhập Google và kết nối sao lưu đám mây thành công.');
     } catch (error) {
       setAuthError(
         error instanceof Error
@@ -161,7 +162,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
   const handleSignOutClick = async () => {
     await logout();
     onSignOut();
-    setCloudStatusMsg('Đã đăng xuất khỏi phiên đám mây.');
+    setCloudStatusMsg('Đã đăng xuất khỏi tài khoản sao lưu đám mây.');
   };
 
   const handleSyncToFirestore = async () => {
@@ -181,15 +182,14 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
       const nowStr = new Date().toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
       });
       setLastCloudSyncAt(nowStr);
       setCloudStatusMsg(
-        `Đã đồng bộ ${vitals.length} bản ghi sinh hiệu, ${meals.length} bữa ăn và ${medications.length} đơn thuốc lên Firebase Firestore.`
+        `Đã sao lưu ${vitals.length} lần đo, ${meals.length} bữa ăn và ${medications.length} đơn thuốc lên đám mây an toàn.`
       );
     } catch (error) {
       setCloudStatusMsg(
-        error instanceof Error ? error.message : 'Lỗi khi đồng bộ dữ liệu lên Firestore.'
+        error instanceof Error ? error.message : 'Lỗi khi sao lưu dữ liệu lên đám mây.'
       );
     } finally {
       setIsSyncingCloud(false);
@@ -203,7 +203,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
 
     const token = await getAccessToken();
     if (!token) {
-      setCalendarMsg('Phiên truy cập Google Calendar đã hết hạn. Vui lòng bấm Đăng nhập lại.');
+      setCalendarMsg('Phiên truy cập Lịch Google đã hết hạn. Vui lòng bấm Đăng nhập lại.');
       return;
     }
 
@@ -219,29 +219,29 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
           time: mutation.time,
           durationMinutes: mutation.durationMinutes,
         });
-        setCalendarMsg(`Đã tạo lịch hẹn "${mutation.summary}" trên Google Calendar.`);
+        setCalendarMsg(`Đã tạo lịch hẹn "${mutation.summary}" trên Lịch Google.`);
       } else if (mutation.type === 'sync_medications') {
         for (const med of mutation.medications) {
           await createCalendarHealthEvent(token, {
             summary: `[VitaPulse] Uống thuốc: ${med.medicationName} (${med.dosage})`,
             description: `Chỉ dẫn: ${med.mealInstruction} · Công dụng: ${med.purpose}`,
-            location: 'Tại nhà — Hồ sơ VitaPulse Health',
+            location: 'Tại nhà — Sổ Sức khỏe VitaPulse',
             date: mutation.date,
             time: med.timeSlot,
             durationMinutes: 15,
           });
         }
         setCalendarMsg(
-          `Đã đồng bộ ${mutation.medications.length} cữ nhắc uống thuốc lên Google Calendar.`
+          `Đã thêm ${mutation.medications.length} cữ nhắc uống thuốc vào Lịch Google.`
         );
       } else if (mutation.type === 'delete_event') {
         await deleteCalendarHealthEvent(token, mutation.eventId);
-        setCalendarMsg(`Đã xóa sự kiện "${mutation.summary}" khỏi Google Calendar.`);
+        setCalendarMsg(`Đã xóa sự kiện "${mutation.summary}" khỏi Lịch Google.`);
       }
       await loadCalendarEvents();
     } catch (error) {
       setCalendarMsg(
-        error instanceof Error ? error.message : 'Thao tác Google Calendar thất bại.'
+        error instanceof Error ? error.message : 'Thao tác với Lịch Google chưa thành công.'
       );
     } finally {
       setIsLoadingCalendar(false);
@@ -254,12 +254,12 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
     try {
       const reading = await scanAndReadBleMedicalDevice();
       setBleReading(reading);
-      setBleStatusMsg(`Đã đọc gói tin GATT từ thiết bị "${reading.deviceName}".`);
+      setBleStatusMsg(`Đã nhận số đo từ thiết bị "${reading.deviceName}".`);
     } catch (error) {
       setBleStatusMsg(
         error instanceof Error
           ? error.message
-          : 'Không tìm thấy thiết bị BLE hoặc người dùng đã hủy ghép đôi.'
+          : 'Không tìm thấy thiết bị đo hoặc bạn đã hủy kết nối.'
       );
     } finally {
       setIsScanningBle(false);
@@ -293,7 +293,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
       steps: latest?.steps || 6840,
       deviceSource:
         bleReading.serviceType === 'blood_pressure' ? 'Máy đo Omron' : 'Smartwatch BLE',
-      notes: `Đo tự động qua Bluetooth (${bleReading.deviceName})`,
+      notes: `Đồng bộ từ thiết bị (${bleReading.deviceName})`,
     });
     setBleStatusMsg(
       `Đã lưu chỉ số từ "${bleReading.deviceName}" vào Sổ Sức khỏe${
@@ -303,30 +303,29 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Top Banner: Cloud Account & Authentication Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
+    <div className="space-y-5">
+      {/* Thanh kết nối tài khoản Google & Thiết bị */}
+      <Card>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-md">
-                <Cloud className="w-3.5 h-3.5" />
-                Sao lưu Sổ Sức khỏe &amp; Lịch Hẹn Khám
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B5F57] bg-[#0F766E]/10 border border-[#0F766E]/25 px-2.5 py-1 rounded-xl">
+                <Cloud className="w-4 h-4 text-[#0F766E]" />
+                <span>Sao lưu Sổ Sức khỏe &amp; Lịch Hẹn Khám</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-md">
-                <Bluetooth className="w-3.5 h-3.5" />
-                Kết nối Máy đo Huyết áp &amp; Đồng hồ
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] border border-stone-200 px-2.5 py-1 rounded-xl">
+                <Bluetooth className="w-4 h-4 text-[#0F766E]" />
+                <span>Đồng bộ từ thiết bị đo</span>
               </span>
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 pt-1">
-              Tiện ích Sao lưu Hồ sơ, Nhắc Lịch Tái khám &amp; Kết nối Máy đo Tại nhà
+            <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] pt-1">
+              Tiện ích Sao lưu Hồ sơ, Nhắc Lịch Tái khám &amp; Đồng bộ từ Thiết bị
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Giúp Cô Chú, Anh Chị cất giữ sổ sức khỏe an toàn khi đổi điện thoại, tự động báo nhắc ngày giờ đi khám bác sĩ và nhận số đo trực tiếp từ máy đo huyết áp Bluetooth.
+            <p className="text-sm text-stone-600">
+              Giúp bạn cất giữ sổ sức khỏe an toàn khi đổi điện thoại, tự động nhắc ngày giờ tái khám bác sĩ và nhận số đo trực tiếp từ máy đo huyết áp tại nhà.
             </p>
           </div>
 
-          {/* Official Google Sign-In Button or Active Session Controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
             {!user || !hasCalendarToken ? (
               <button
@@ -334,7 +333,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                 onClick={handleGoogleLogin}
                 disabled={isSigningIn}
                 data-testid="google-signin-button"
-                className="gsi-material-button inline-flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
+                className="min-h-[48px] inline-flex items-center justify-center gap-3 px-4 py-2.5 rounded-2xl bg-white hover:bg-[#FAF7F2] border border-stone-300 text-[#1F2937] text-sm font-bold shadow-2xs transition-colors cursor-pointer disabled:opacity-60"
               >
                 <div className="w-4 h-4 shrink-0">
                   <svg
@@ -362,7 +361,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                     <path fill="none" d="M0 0h48v48H0z" />
                   </svg>
                 </div>
-                <span className="gsi-material-button-contents">
+                <span>
                   {isSigningIn
                     ? 'Đang kết nối tài khoản...'
                     : user
@@ -372,19 +371,17 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
               </button>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
-                  <p className="font-semibold">{user.displayName || user.email}</p>
-                  <p className="text-[11px] text-emerald-700">
-                    Đã kết nối Sao lưu &amp; Lịch hẹn
-                  </p>
+                <div className="px-3.5 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
+                  <p className="font-bold">{user.displayName || user.email}</p>
+                  <p className="text-emerald-800">Đã kết nối Sao lưu &amp; Lịch hẹn</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleSignOutClick}
-                  className="min-h-[38px] px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5"
+                  className="min-h-[44px] px-3.5 py-2 rounded-2xl border border-stone-300 hover:bg-stone-100 text-xs font-bold text-[#1F2937] inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  Đăng xuất
+                  <span>Đăng xuất</span>
                 </button>
               </div>
             )}
@@ -392,103 +389,103 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
         </div>
 
         {authError && (
-          <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+          <div className="mt-3 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-sm text-[#DC2626] font-semibold">
             {authError}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* 3-Column Adaptive Integration Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-        {/* PILLAR 1: FIREBASE FIRESTORE CLOUD SYNC */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+      {/* Lưới 3 cột tiện ích */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+        {/* 1. Sao lưu đám mây */}
+        <Card className="flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-stone-200/80 pb-3">
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-teal-600 shrink-0" />
-                <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+                <Cloud className="w-5 h-5 text-[#0F766E] shrink-0" />
+                <h3 className="text-base font-bold text-[#1F2937]">
                   1. Sao lưu Sổ Sức khỏe An toàn
                 </h3>
               </div>
               <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                className={`text-xs font-bold px-2.5 py-0.5 rounded-xl border ${
                   user
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-600'
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                    : 'bg-stone-100 text-stone-700 border-stone-200'
                 }`}
               >
-                {user ? 'Đã kết nối Đám mây' : 'Lưu trên máy này'}
+                {user ? 'Đã kết nối' : 'Lưu trên máy này'}
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Cất giữ toàn bộ lịch sử đo huyết áp, đường huyết, bữa ăn và đơn thuốc trên tài khoản cá nhân để xem được trên cả điện thoại lẫn máy tính và không lo bị mất khi đổi máy.
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Cất giữ toàn bộ lịch sử đo huyết áp, đường huyết, bữa ăn và đơn thuốc trên tài khoản cá nhân để không bị mất khi đổi điện thoại.
             </p>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                <p className="text-[11px] text-slate-500">Số lần đo đã lưu</p>
-                <p className="text-sm font-bold text-slate-900 font-mono-tabular">
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-stone-100">
+              <div>
+                <p className="text-xs text-stone-500">Số lần đo đã lưu</p>
+                <p className="text-base font-extrabold text-[#1F2937] tabular-nums">
                   {vitals.length} lần đo
                 </p>
               </div>
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                <p className="text-[11px] text-slate-500">Bữa ăn &amp; Thuốc</p>
-                <p className="text-sm font-bold text-slate-900 font-mono-tabular">
+              <div>
+                <p className="text-xs text-stone-500">Bữa ăn &amp; Thuốc</p>
+                <p className="text-base font-extrabold text-[#1F2937] tabular-nums">
                   {meals.length} bữa · {medications.length} thuốc
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-xs text-slate-700 space-y-1">
-              <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                <span>Cách sử dụng:</span>
+            <div className="pt-2 border-t border-stone-100 text-xs text-stone-600 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-[#1F2937]">
+                <ShieldCheck className="w-4 h-4 text-[#0F766E]" />
+                <span>Hướng dẫn nhanh:</span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Bấm <strong>Sign in with Google</strong> ở góc trên, sau đó bấm nút bên dưới để lưu toàn bộ sổ sức khỏe lên tài khoản của bạn.
+              <p className="leading-relaxed">
+                Bấm <strong>Sign in with Google</strong> ở góc trên, sau đó bấm nút bên dưới để sao lưu toàn bộ sổ sức khỏe.
               </p>
               {lastCloudSyncAt && (
-                <p className="text-[11px] text-emerald-700 font-semibold pt-1">
-                  Đã sao lưu lần cuối lúc: {lastCloudSyncAt}
+                <p className="text-emerald-800 font-bold pt-1 tabular-nums">
+                  Đã sao lưu lần cuối lúc: {formatTime24h(lastCloudSyncAt)}
                 </p>
               )}
             </div>
 
             {cloudStatusMsg && (
-              <div className="p-2.5 rounded-lg bg-teal-50 border border-teal-200 text-xs text-teal-900">
+              <div className="p-3 rounded-2xl bg-[#0F766E]/10 border border-[#0F766E]/25 text-xs font-semibold text-[#0B5F57]">
                 {cloudStatusMsg}
               </div>
             )}
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-3 border-t border-stone-200/80">
             <button
               type="button"
               disabled={!user || isSyncingCloud}
               onClick={handleSyncToFirestore}
               data-testid="sync-firestore-btn"
-              className="w-full min-h-[42px] px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-500 text-white text-xs font-semibold transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full min-h-[48px] px-4 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] disabled:bg-stone-200 disabled:text-stone-500 text-white text-sm font-bold transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isSyncingCloud ? 'animate-spin' : ''}`} />
               <span>
                 {!user
-                  ? 'Đăng nhập Google để Sao lưu Sổ Sức khỏe'
+                  ? 'Đăng nhập Google để Sao lưu'
                   : isSyncingCloud
                   ? 'Đang sao lưu hồ sơ...'
                   : 'Sao lưu Toàn bộ Sổ Sức khỏe Ngay'}
               </span>
             </button>
           </div>
-        </div>
+        </Card>
 
-        {/* PILLAR 2: GOOGLE CALENDAR APPOINTMENT & MEDICATION SYNC */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+        {/* 2. Lịch tái khám & Nhắc thuốc trên Lịch Google */}
+        <Card className="flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-stone-200/80 pb-3">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
-                <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+                <Calendar className="w-5 h-5 text-[#0F766E] shrink-0" />
+                <h3 className="text-base font-bold text-[#1F2937]">
                   2. Hẹn Lịch Tái khám &amp; Nhắc Thuốc
                 </h3>
               </div>
@@ -496,86 +493,85 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                 <button
                   type="button"
                   onClick={loadCalendarEvents}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                  className="text-xs font-bold text-[#0F766E] hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <RefreshCw className={`w-3 h-3 ${isLoadingCalendar ? 'animate-spin' : ''}`} />
-                  Làm mới
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCalendar ? 'animate-spin' : ''}`} />
+                  <span>Làm mới</span>
                 </button>
               )}
             </div>
 
-            {/* Quick Checkup Scheduling Form */}
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-slate-700">
+            <div className="space-y-2.5 text-sm">
+              <label className="block font-bold text-[#1F2937]">
                 Nội dung lịch tái khám / xét nghiệm
                 <input
                   type="text"
                   value={checkupTitle}
                   onChange={(e) => setCheckupTitle(e.target.value)}
-                  className="mt-1 w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                  className="mt-1 w-full min-h-[44px] px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-2xl text-[#1F2937] font-normal"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block text-xs font-medium text-slate-700">
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="block font-bold text-[#1F2937]">
                   Ngày đi khám
                   <input
                     type="date"
                     value={checkupDate}
                     onChange={(e) => setCheckupDate(e.target.value)}
-                    className="mt-1 w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg font-mono-tabular"
+                    className="mt-1 w-full min-h-[44px] px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums font-normal"
                   />
                 </label>
-                <label className="block text-xs font-medium text-slate-700">
-                  Giờ hẹn ({checkupDuration} phút)
+                <label className="block font-bold text-[#1F2937]">
+                  Giờ hẹn (24h)
                   <input
                     type="time"
                     value={checkupTime}
                     onChange={(e) => setCheckupTime(e.target.value)}
-                    className="mt-1 w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg font-mono-tabular"
+                    className="mt-1 w-full min-h-[44px] px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums font-normal"
                   />
                 </label>
               </div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block font-bold text-[#1F2937]">
                 Bệnh viện / Phòng khám
                 <input
                   type="text"
                   value={checkupLocation}
                   onChange={(e) => setCheckupLocation(e.target.value)}
-                  className="mt-1 w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                  className="mt-1 w-full min-h-[44px] px-3 py-1.5 text-sm bg-white border border-stone-300 rounded-2xl text-[#1F2937] font-normal"
                 />
               </label>
             </div>
 
             {calendarMsg && (
-              <div className="p-2.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs text-indigo-900">
+              <div className="p-3 rounded-2xl bg-[#0F766E]/10 border border-[#0F766E]/25 text-xs font-semibold text-[#0B5F57]">
                 {calendarMsg}
               </div>
             )}
 
-            {/* Upcoming Google Calendar Events List */}
             <div className="space-y-1.5 pt-1">
-              <p className="text-xs font-semibold text-slate-700">
-                Lịch hẹn sắp tới trên điện thoại ({calendarEvents.length}):
+              <p className="text-xs font-bold text-[#1F2937]">
+                Lịch hẹn sắp tới ({calendarEvents.length}):
               </p>
               {!hasCalendarToken ? (
-                <p className="text-xs text-slate-500 italic">
+                <p className="text-xs text-stone-600">
                   Đăng nhập Google để điện thoại tự động nhắc lịch tái khám bác sĩ trước 30 phút.
                 </p>
               ) : calendarEvents.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">
+                <p className="text-xs text-stone-600">
                   Chưa có lịch hẹn nào sắp tới. Hãy chọn ngày giờ và bấm Đặt lịch Tái khám bên dưới.
                 </p>
               ) : (
-                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                  {calendarEvents.map((ev) => (
+                <div className="divide-y divide-stone-100">
+                  {calendarEvents.slice(0, 3).map((ev) => (
                     <div
                       key={ev.id}
-                      className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs"
+                      className="py-2 flex items-center justify-between gap-2 text-xs"
                     >
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900 truncate">{ev.summary}</p>
-                        <p className="text-[11px] text-slate-500 font-mono-tabular truncate">
-                          {ev.startDateTime.replace('T', ' ').slice(0, 16)}
+                        <p className="font-bold text-[#1F2937] truncate">{ev.summary}</p>
+                        <p className="text-stone-600 tabular-nums truncate">
+                          {formatDateDdMmYyyy(ev.startDateTime.slice(0, 10))} ·{' '}
+                          {formatTime24h(ev.startDateTime.slice(11, 16))}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -584,10 +580,10 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                             href={ev.htmlLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="p-1 text-slate-500 hover:text-indigo-600"
+                            className="p-1.5 text-stone-500 hover:text-[#0F766E]"
                             title="Mở Lịch"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-4 h-4" />
                           </a>
                         )}
                         <button
@@ -599,10 +595,10 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                               summary: ev.summary,
                             })
                           }
-                          className="p-1 text-slate-400 hover:text-red-600"
+                          className="p-1.5 text-stone-500 hover:text-[#DC2626] cursor-pointer"
                           title="Xóa lịch hẹn"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -612,7 +608,7 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="pt-3 border-t border-stone-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               type="button"
               disabled={!hasCalendarToken || isLoadingCalendar}
@@ -629,9 +625,9 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                   durationMinutes: checkupDuration,
                 })
               }
-              className="min-h-[40px] px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-500 text-white text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              className="min-h-[48px] px-3 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] disabled:bg-stone-200 disabled:text-stone-500 text-white text-xs sm:text-sm font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               <span>Đặt lịch Tái khám</span>
             </button>
             <button
@@ -644,109 +640,107 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
                   medications,
                 })
               }
-              className="min-h-[40px] px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-500 text-white text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              className="min-h-[48px] px-3 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-200/70 border border-stone-300 disabled:bg-stone-100 disabled:text-stone-400 text-[#1F2937] text-xs sm:text-sm font-bold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              <Calendar className="w-4 h-4 text-[#0F766E]" />
               <span>Nhắc {medications.length} cữ thuốc</span>
             </button>
           </div>
-        </div>
+        </Card>
 
-        {/* PILLAR 3: WEB BLUETOOTH BLE MEDICAL DEVICE CONNECTION */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+        {/* 3. Đồng bộ từ thiết bị đo Bluetooth */}
+        <Card className="flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-stone-200/80 pb-3">
               <div className="flex items-center gap-2">
-                <Bluetooth className="w-4 h-4 text-sky-600 shrink-0" />
-                <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-                  3. Kết nối Máy đo Huyết áp Bluetooth
+                <Bluetooth className="w-5 h-5 text-[#0F766E] shrink-0" />
+                <h3 className="text-base font-bold text-[#1F2937]">
+                  3. Đồng bộ từ Thiết bị Đo
                 </h3>
               </div>
               <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                className={`text-xs font-bold px-2.5 py-0.5 rounded-xl border ${
                   bleSupported
-                    ? 'bg-sky-50 text-sky-800 border border-sky-200'
-                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                    ? 'bg-[#0F766E]/10 text-[#0B5F57] border-[#0F766E]/25'
+                    : 'bg-amber-50 text-amber-950 border-amber-300'
                 }`}
               >
                 {bleSupported ? 'Sẵn sàng kết nối' : 'Chế độ đọc thử'}
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Tự động nhận kết quả đo từ máy đo huyết áp bắp tay (Omron, Beurer...) hoặc đồng hồ thông minh có bật Bluetooth mà không cần phải gõ từng con số.
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Nhận kết quả đo từ máy đo huyết áp bắp tay (Omron, Beurer...) hoặc thiết bị đeo sức khỏe có bật Bluetooth mà không cần gõ từng con số.
             </p>
 
-            {/* Quick Sample Device Controls for Easy Testing */}
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold text-slate-500">
-                Bấm để thử nhận số đo tự động từ máy đo:
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-stone-600">
+                Bấm để thử đồng bộ số đo từ thiết bị:
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => handleDecodeSampleGatt('omron_bp_cuff')}
                   data-testid="ble-sample-omron-btn"
-                  className="px-2.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors text-left cursor-pointer"
+                  className="min-h-[52px] px-3 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-200/70 border border-stone-200 text-[#1F2937] text-xs font-bold transition-colors text-left cursor-pointer"
                 >
-                  <span className="block text-slate-900">Máy đo Huyết áp Omron</span>
-                  <span className="text-[10px] text-slate-500">Đọc Huyết áp &amp; Nhịp tim</span>
+                  <span className="block text-[#1F2937]">Máy đo Huyết áp Omron</span>
+                  <span className="text-stone-600 font-normal">Đọc Huyết áp &amp; Nhịp tim</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDecodeSampleGatt('polar_hr_strap')}
                   data-testid="ble-sample-polar-btn"
-                  className="px-2.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors text-left cursor-pointer"
+                  className="min-h-[52px] px-3 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-200/70 border border-stone-200 text-[#1F2937] text-xs font-bold transition-colors text-left cursor-pointer"
                 >
-                  <span className="block text-slate-900">Đồng hồ Sức khỏe</span>
-                  <span className="text-[10px] text-slate-500">Đọc Nhịp tim &amp; Oxy máu</span>
+                  <span className="block text-[#1F2937]">Đồng hồ Sức khỏe</span>
+                  <span className="text-stone-600 font-normal">Đọc Nhịp tim &amp; Oxy máu</span>
                 </button>
               </div>
             </div>
 
-            {/* Decoded BLE Reading Display */}
             {bleReading && (
               <div
                 data-testid="ble-decoded-card"
-                className="p-3 rounded-lg bg-sky-50/70 border border-sky-200 space-y-2"
+                className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#0F766E]/30 space-y-2.5"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-900 truncate">
+                  <span className="font-bold text-[#1F2937] truncate">
                     {bleReading.deviceName.replace(/\s*\(GATT[^)]*\)/g, '')}
                   </span>
-                  <span className="text-[11px] font-mono-tabular text-sky-800">
-                    Đo lúc {bleReading.timestamp}
+                  <span className="tabular-nums font-bold text-[#0B5F57]">
+                    Đo lúc {formatTime24h(bleReading.timestamp)}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center bg-white p-2 rounded border border-sky-100">
+                <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-stone-200/80 tabular-nums">
                   <div>
-                    <p className="text-[10px] text-slate-500">Huyết áp</p>
-                    <p className="text-xs font-bold text-slate-900 font-mono-tabular">
+                    <p className="text-xs text-stone-500">Huyết áp</p>
+                    <p className="text-sm font-extrabold text-[#1F2937]">
                       {bleReading.systolic || 118}/{bleReading.diastolic || 76}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500">Nhịp tim</p>
-                    <p className="text-xs font-bold text-teal-700 font-mono-tabular">
-                      {bleReading.heartRate || 70} bpm
+                    <p className="text-xs text-stone-500">Nhịp tim</p>
+                    <p className="text-sm font-extrabold text-[#0F766E]">
+                      {bleReading.heartRate || 70} nhịp/p
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-500">Oxy máu</p>
-                    <p className="text-xs font-bold text-indigo-700 font-mono-tabular">
+                    <p className="text-xs text-stone-500">Oxy máu</p>
+                    <p className="text-sm font-extrabold text-[#0B5F57]">
                       {bleReading.spo2 || 98}%
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <span className="text-[11px] text-slate-600 truncate">
+                  <span className="text-xs text-stone-600 truncate">
                     Đã nhận đủ số đo từ thiết bị
                   </span>
                   <button
                     type="button"
                     onClick={handleSaveBleToVitals}
                     data-testid="save-ble-vital-btn"
-                    className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shrink-0 cursor-pointer"
+                    className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-xs font-bold shrink-0 cursor-pointer"
                   >
                     Lưu vào Sổ Sức khỏe
                   </button>
@@ -755,75 +749,75 @@ export const ConnectedEcosystemPanel: React.FC<ConnectedEcosystemPanelProps> = (
             )}
 
             {bleStatusMsg && (
-              <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-800">
+              <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-stone-200 text-xs font-semibold text-[#1F2937]">
                 {bleStatusMsg}
               </div>
             )}
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-3 border-t border-stone-200/80">
             <button
               type="button"
               onClick={handleScanRealBle}
               disabled={isScanningBle}
-              className="w-full min-h-[42px] px-4 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full min-h-[48px] px-4 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Bluetooth className="w-3.5 h-3.5" />
+              <Bluetooth className="w-4 h-4" />
               <span>
                 {isScanningBle
-                  ? 'Đang dò tìm máy đo Bluetooth...'
-                  : 'Dò tìm & Kết nối Máy đo Bluetooth Thực tế'}
+                  ? 'Đang dò tìm máy đo...'
+                  : 'Dò tìm & Đồng bộ từ Thiết bị Thực tế'}
               </span>
             </button>
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* MANDATORY USER CONFIRMATION DIALOG FOR GOOGLE CALENDAR MUTATIONS */}
+      {/* Hộp thoại xác nhận trước khi thay đổi Lịch Google */}
       {pendingMutation && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-xs p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="calendar-confirm-title"
         >
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+          <div className="bg-white border border-stone-200 rounded-[24px] max-w-md w-full p-5 shadow-xl space-y-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 shrink-0">
+              <div className="p-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-[#F59E0B] shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h4
                   id="calendar-confirm-title"
-                  className="text-sm sm:text-base font-bold text-slate-900"
+                  className="text-base font-bold text-[#1F2937]"
                 >
-                  Xác nhận Thay đổi trên Google Calendar
+                  Xác nhận lưu lịch hẹn trên Lịch Google
                 </h4>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
                   {pendingMutation.type === 'create_checkup' &&
-                    `Bạn có chắc chắn muốn thêm lịch hẹn "${pendingMutation.summary}" vào ngày ${pendingMutation.date} lúc ${pendingMutation.time} trên Google Calendar cá nhân không?`}
+                    `Bạn có muốn thêm lịch hẹn "${pendingMutation.summary}" vào ngày ${formatDateDdMmYyyy(pendingMutation.date)} lúc ${formatTime24h(pendingMutation.time)} trên Lịch Google cá nhân không?`}
                   {pendingMutation.type === 'sync_medications' &&
-                    `Bạn có chắc chắn muốn tạo ${pendingMutation.medications.length} sự kiện nhắc uống thuốc trong ngày ${pendingMutation.date} lên Google Calendar cá nhân không?`}
+                    `Bạn có muốn tạo ${pendingMutation.medications.length} lịch nhắc uống thuốc trong ngày ${formatDateDdMmYyyy(pendingMutation.date)} trên Lịch Google cá nhân không?`}
                   {pendingMutation.type === 'delete_event' &&
-                    `Bạn có chắc chắn muốn xóa vĩnh viễn sự kiện "${pendingMutation.summary}" khỏi Google Calendar cá nhân không?`}
+                    `Bạn có muốn xóa lịch hẹn "${pendingMutation.summary}" khỏi Lịch Google cá nhân không?`}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
               <button
                 type="button"
                 onClick={() => setPendingMutation(null)}
-                className="min-h-[38px] px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700"
+                className="min-h-[44px] px-4 py-2 rounded-2xl border border-stone-300 hover:bg-stone-100 text-sm font-bold text-[#1F2937] cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmCalendarMutation}
-                className="min-h-[38px] px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5"
+                className="min-h-[44px] px-4 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold flex items-center gap-1.5 cursor-pointer"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-4 h-4" />
                 <span>Xác nhận thực hiện</span>
               </button>
             </div>

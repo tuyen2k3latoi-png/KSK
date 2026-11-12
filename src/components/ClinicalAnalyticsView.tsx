@@ -1,4 +1,16 @@
 import React, { useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  Download,
+  Eye,
+  FileJson,
+  FileSpreadsheet,
+  RotateCcw,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { MealEntry, VitalRecord } from '../types/health';
 import {
   classifyBloodGlucose,
@@ -10,16 +22,11 @@ import {
   triggerOfflineFileDownload,
 } from '../utils/healthCalculations';
 import {
-  Check,
-  Copy,
-  Download,
-  Eye,
-  FileJson,
-  FileSpreadsheet,
-  RotateCcw,
-  Search,
-  Trash2,
-} from 'lucide-react';
+  formatDateDdMmYyyy,
+  formatTime24h,
+  humanizeDeviceSource,
+} from '../utils/formatters';
+import { Card, Chip, EmptyState } from './ui/Primitives';
 
 interface ClinicalAnalyticsViewProps {
   records: VitalRecord[];
@@ -47,17 +54,26 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [copiedPreview, setCopiedPreview] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [showAllMobileVitals, setShowAllMobileVitals] = useState<boolean>(false);
+  const [showAllMobileMeals, setShowAllMobileMeals] = useState<boolean>(false);
 
   const filteredRecords = records.filter((rec) => {
     const bp = classifyBloodPressure(rec.systolic, rec.diastolic);
+    const formattedDate = formatDateDdMmYyyy(rec.date);
     const matchesSearch =
       rec.date.includes(searchQuery) ||
+      formattedDate.includes(searchQuery) ||
       (rec.notes && rec.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
       rec.deviceSource.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSource = sourceFilter === 'all' || rec.deviceSource === sourceFilter;
     const matchesStatus = statusFilter === 'all' || bp.status === statusFilter;
     return matchesSearch && matchesSource && matchesStatus;
   });
+
+  const mobileVisibleRecords = showAllMobileVitals
+    ? filteredRecords
+    : filteredRecords.slice(0, 5);
+  const mobileVisibleMeals = showAllMobileMeals ? meals : meals.slice(0, 4);
 
   const getCsvPayload = (scope: ExportScope): string => {
     if (scope === 'vitals') return serializeVitalsToCsv(filteredRecords);
@@ -131,16 +147,16 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Offline Export Center for Vitals & Meals (CSV / JSON) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
+    <div className="space-y-5">
+      {/* 1. Tải Sổ Sức khỏe về máy */}
+      <Card className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-stone-200/80">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+            <h3 className="text-lg font-bold text-[#1F2937]">
               Tải Sổ Sức khỏe Đưa Bác sĩ Xem hoặc Lưu trữ Về máy
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Lưu về điện thoại hoặc máy tính toàn bộ lịch sử đo Huyết áp, Đường huyết ({filteredRecords.length} lần đo) và Nhật ký Bữa ăn ({meals.length} bữa) để gửi cho bác sĩ hoặc con cháu.
+            <p className="text-sm text-stone-600 mt-0.5">
+              Lưu về điện thoại hoặc máy tính toàn bộ lịch sử đo Huyết áp, Đường huyết ({filteredRecords.length} lần đo) và Nhật ký Bữa ăn ({meals.length} bữa) để gửi cho bác sĩ hoặc người thân.
             </p>
           </div>
 
@@ -148,62 +164,62 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
             <button
               type="button"
               onClick={() => handleDownloadCsv()}
-              className="min-h-[40px] justify-center px-3.5 py-2 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="min-h-[48px] justify-center px-4 py-2 text-sm font-bold text-white bg-[#0F766E] hover:bg-[#0B5F57] rounded-2xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4 shrink-0" />
-              Tải Sổ Bảng biểu (CSV)
+              <span>Tải Sổ Bảng biểu (CSV)</span>
             </button>
             <button
               type="button"
               onClick={() => handleDownloadJson()}
-              className="min-h-[40px] justify-center px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="min-h-[48px] justify-center px-4 py-2 text-sm font-bold text-[#1F2937] bg-[#FAF7F2] hover:bg-stone-200/70 border border-stone-300 rounded-2xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <FileJson className="w-4 h-4 text-amber-400 shrink-0" />
-              Tải Bản Sao lưu (JSON)
+              <FileJson className="w-4 h-4 text-[#0F766E] shrink-0" />
+              <span>Tải Bản Sao lưu (JSON)</span>
             </button>
             <button
               type="button"
               onClick={onResetSampleData}
-              className="col-span-2 sm:col-span-1 min-h-[40px] justify-center px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="col-span-2 sm:col-span-1 min-h-[48px] justify-center px-4 py-2 text-sm font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-2xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-              Khôi phục Dữ liệu Mẫu
+              <RotateCcw className="w-4 h-4 shrink-0" />
+              <span>Khôi phục dữ liệu mẫu</span>
             </button>
           </div>
         </div>
 
-        {/* Scope Selection & Format Controls */}
+        {/* Chọn phạm vi dữ liệu xuất */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:flex items-center gap-1.5 p-1.5 bg-[#FAF7F2] border border-stone-200 rounded-2xl">
             <button
               type="button"
               onClick={() => setExportScope('all')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-3 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
                 exportScope === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B5F57] shadow-2xs'
+                  : 'text-stone-600 hover:text-[#1F2937]'
               }`}
             >
-              Trọn bộ Sổ Sức khỏe ({filteredRecords.length} lần đo + {meals.length} bữa ăn)
+              Trọn bộ Sổ Sức khỏe ({filteredRecords.length} lần đo + {meals.length} bữa)
             </button>
             <button
               type="button"
               onClick={() => setExportScope('vitals')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-3 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
                 exportScope === 'vitals'
-                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B5F57] shadow-2xs'
+                  : 'text-stone-600 hover:text-[#1F2937]'
               }`}
             >
-              Chỉ riêng Huyết áp &amp; Sinh hiệu ({filteredRecords.length})
+              Chỉ riêng Huyết áp &amp; Chỉ số ({filteredRecords.length})
             </button>
             <button
               type="button"
               onClick={() => setExportScope('meals')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-3 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
                 exportScope === 'meals'
-                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B5F57] shadow-2xs'
+                  : 'text-stone-600 hover:text-[#1F2937]'
               }`}
             >
               Chỉ riêng Nhật ký Bữa ăn ({meals.length})
@@ -214,10 +230,10 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
             <button
               type="button"
               onClick={() => setShowPreview(!showPreview)}
-              className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="min-h-[40px] px-3.5 py-1.5 text-sm font-bold text-[#1F2937] bg-white border border-stone-300 hover:bg-[#FAF7F2] rounded-2xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <Eye className="w-3.5 h-3.5 text-teal-600" />
-              {showPreview ? 'Ẩn nội dung tệp' : 'Xem trước nội dung tệp'}
+              <Eye className="w-4 h-4 text-[#0F766E]" />
+              <span>{showPreview ? 'Ẩn nội dung tệp' : 'Xem trước nội dung tệp'}</span>
             </button>
           </div>
         </div>
@@ -226,67 +242,66 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
           <div
             role="status"
             data-testid="export-status-banner"
-            className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5"
+            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5"
           >
             <span>{exportMessage}</span>
-            <span className="font-mono-tabular text-[11px] text-emerald-700 shrink-0">
-              UTF-8 Offline Ready
+            <span className="tabular-nums text-xs font-bold text-emerald-800 shrink-0">
+              Dùng được khi không có mạng
             </span>
           </div>
         )}
 
-        {/* Live Data Export Preview Box */}
         {showPreview && (
           <div className="space-y-2 pt-1">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600">
               <span>
-                Bản xem trước dữ liệu ngoại tuyến ({previewFormat.toUpperCase()} · Phạm vi:{' '}
-                <strong className="text-slate-800">
+                Bản xem trước dữ liệu ({previewFormat.toUpperCase()} · Phạm vi:{' '}
+                <strong className="text-[#1F2937]">
                   {exportScope === 'all'
-                    ? 'Vitals + Meals'
+                    ? 'Chỉ số + Bữa ăn'
                     : exportScope === 'vitals'
-                    ? 'Vitals'
-                    : 'Meals'}
+                    ? 'Chỉ số'
+                    : 'Bữa ăn'}
                 </strong>
                 )
               </span>
               <button
                 type="button"
                 onClick={handleCopyPreview}
-                className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors flex items-center gap-1 whitespace-nowrap shrink-0"
+                className="px-3 py-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] hover:bg-stone-200/70 border border-stone-300 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 {copiedPreview ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    Đã sao chép
+                    <span>Đã sao chép</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    Sao chép nội dung
+                    <span>Sao chép nội dung</span>
                   </>
                 )}
               </button>
             </div>
             <pre
               data-testid="export-preview-content"
-              className="p-3 sm:p-3.5 rounded-xl bg-slate-900 text-slate-100 text-xs font-mono-tabular overflow-x-auto max-h-48 leading-relaxed"
+              className="p-3.5 rounded-2xl bg-stone-900 text-stone-100 text-xs tabular-nums overflow-x-auto max-h-48 leading-relaxed"
             >
               {activePreviewContent}
             </pre>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Clinical Vitals Section (Self-Adapting Cards on Mobile, Table on Laptop) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+      {/* 2. Nhật ký Chỉ số Sức khỏe */}
+      <Card className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200/80">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Nhật ký Sinh hiệu Lâm sàng (Vitals — {filteredRecords.length} bản ghi)
+            <h3 className="text-lg font-bold text-[#1F2937]">
+              Nhật ký Đo Huyết áp &amp; Chỉ số Sức khỏe ({filteredRecords.length} lần đo)
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tra cứu lịch sử đo lường, lọc theo nguồn cảm biến hoặc phân tầng nguy cơ huyết áp AHA
+            <p className="text-sm text-stone-600 mt-0.5">
+              Tra cứu lịch sử đo theo ngày (dd/mm/yyyy), thiết bị đo hoặc mức huyết áp
             </p>
           </div>
 
@@ -294,33 +309,33 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
             <button
               type="button"
               onClick={() => handleDownloadCsv('vitals')}
-              className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-medium text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              className="min-h-[40px] px-3.5 py-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] border border-stone-300 hover:bg-stone-200/70 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-teal-600" />
-              CSV Vitals
+              <Download className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>Tải bảng CSV</span>
             </button>
             <button
               type="button"
               onClick={() => handleDownloadJson('vitals')}
-              className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-medium text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              className="min-h-[40px] px-3.5 py-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] border border-stone-300 hover:bg-stone-200/70 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <FileJson className="w-3.5 h-3.5 text-indigo-600" />
-              JSON Vitals
+              <FileJson className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>Tải tệp JSON</span>
             </button>
           </div>
         </div>
 
-        {/* Filter & Search Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 py-4">
+        {/* Bộ lọc & Tìm kiếm */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               aria-label="Tìm kiếm theo ngày hoặc ghi chú"
-              placeholder="Tìm theo ngày (2026-11-10) hoặc triệu chứng..."
+              placeholder="Tìm theo ngày (10/11/2026) hoặc triệu chứng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="w-full min-h-[48px] pl-10 pr-3.5 py-2 text-sm border border-stone-300 rounded-2xl bg-white"
             />
           </div>
 
@@ -329,12 +344,12 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
               aria-label="Lọc theo thiết bị đo"
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white"
+              className="w-full min-h-[48px] px-3.5 py-2 text-sm border border-stone-300 rounded-2xl bg-white font-semibold"
             >
-              <option value="all">Tất cả nguồn thiết bị ({records.length})</option>
-              <option value="Smartwatch BLE">Thiết bị đeo Smartwatch BLE</option>
+              <option value="all">Tất cả nguồn đo ({records.length})</option>
+              <option value="Smartwatch BLE">Đồng bộ từ thiết bị</option>
               <option value="Máy đo Omron">Máy đo huyết áp Omron</option>
-              <option value="Nhập thủ công">Nhập thủ công</option>
+              <option value="Nhập thủ công">Tự ghi nhận</option>
             </select>
           </div>
 
@@ -343,10 +358,10 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
               aria-label="Lọc theo phân loại huyết áp"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white"
+              className="w-full min-h-[48px] px-3.5 py-2 text-sm border border-stone-300 rounded-2xl bg-white font-semibold"
             >
-              <option value="all">Tất cả mức phân loại lâm sàng</option>
-              <option value="normal">Huyết áp tối ưu (&le; 120/80)</option>
+              <option value="all">Tất cả mức huyết áp</option>
+              <option value="normal">Bình thường (&le; 120/80)</option>
               <option value="elevated">Bình thường cao (121–129/&lt;80)</option>
               <option value="warning">Tăng huyết áp Độ 1 (130–139/80–89)</option>
               <option value="critical">Tăng huyết áp Độ 2 (&ge; 140/90)</option>
@@ -355,153 +370,150 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
         </div>
 
         {filteredRecords.length === 0 ? (
-          <div className="py-10 text-center border-t border-slate-100">
-            <p className="text-sm font-medium text-slate-700">
-              Không tìm thấy bản ghi sinh hiệu nào khớp với điều kiện lọc.
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              Bạn có thể xóa bộ lọc tìm kiếm hoặc ghi nhận phép đo mới ngay bây giờ.
-            </p>
-            <button
-              type="button"
-              onClick={onOpenLogModal}
-              className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
-            >
-              Ghi nhận Chỉ số Đầu tiên
-            </button>
-          </div>
+          <EmptyState
+            title="Không tìm thấy lần đo nào khớp với bộ lọc"
+            description="Bạn có thể xóa từ khóa tìm kiếm hoặc ghi nhận số đo mới ngay bây giờ."
+            actionLabel="Ghi nhận chỉ số mới"
+            onAction={onOpenLogModal}
+          />
         ) : (
           <>
-            {/* Mobile Adaptive View (< 768px): Touch-Friendly Clinical Record Cards */}
-            <div className="md:hidden divide-y divide-slate-100 border-t border-slate-100">
-              {filteredRecords.map((rec) => {
+            {/* Chế độ Điện thoại (< 768px): Danh sách có nút Xem thêm */}
+            <div className="md:hidden divide-y divide-stone-100 border-t border-stone-100">
+              {mobileVisibleRecords.map((rec) => {
                 const bpEval = classifyBloodPressure(rec.systolic, rec.diastolic);
                 const gluEval = classifyBloodGlucose(rec.bloodGlucose, rec.glucoseContext);
                 return (
                   <div key={rec.id} className="py-3.5 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <span className="font-semibold text-xs text-slate-900 font-mono-tabular">
-                          {rec.date} · {rec.time}
+                        <span className="font-bold text-sm text-[#1F2937] tabular-nums">
+                          {formatDateDdMmYyyy(rec.date)} · {formatTime24h(rec.time)}
                         </span>
-                        <span className="text-[11px] text-slate-500"> · {rec.deviceSource}</span>
+                        <span className="text-xs text-stone-600">
+                          {' '}
+                          · {humanizeDeviceSource(rec.deviceSource)}
+                        </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => onDeleteRecord(rec.id)}
                         aria-label={`Xóa bản ghi ngày ${rec.date} lúc ${rec.time}`}
-                        className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-stone-500 hover:text-[#DC2626] hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 min-[380px]:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-xs font-mono-tabular">
+                    <div className="grid grid-cols-2 min-[380px]:grid-cols-4 gap-2 text-sm tabular-nums">
                       <div>
-                        <span className="text-[10px] text-slate-500 block font-sans">Huyết áp</span>
-                        <strong className="text-slate-900">
+                        <span className="text-xs text-stone-500 block">Huyết áp</span>
+                        <strong className="text-[#1F2937]">
                           {rec.systolic}/{rec.diastolic}
                         </strong>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-500 block font-sans">Nhịp tim</span>
-                        <strong className="text-slate-900">{rec.heartRate} bpm</strong>
+                        <span className="text-xs text-stone-500 block">Nhịp tim</span>
+                        <strong className="text-[#1F2937]">{rec.heartRate} nhịp/p</strong>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-500 block font-sans">SpO2 &amp; Đường</span>
-                        <strong className="text-slate-900">
-                          {rec.spo2}% · {rec.bloodGlucose}
-                        </strong>
+                        <span className="text-xs text-stone-500 block">Đường huyết</span>
+                        <strong className="text-[#1F2937]">{rec.bloodGlucose} mg/dL</strong>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-500 block font-sans">Cân nặng</span>
-                        <strong className="text-slate-900">{rec.weightKg} kg</strong>
+                        <span className="text-xs text-stone-500 block">Cân nặng</span>
+                        <strong className="text-[#1F2937]">{rec.weightKg} kg</strong>
                       </div>
                     </div>
 
-                    <div className="text-xs text-slate-700">
-                      <span
-                        className={`font-semibold ${
-                          bpEval.status === 'normal'
-                            ? 'text-emerald-700'
-                            : bpEval.status === 'elevated'
-                            ? 'text-amber-700'
-                            : 'text-rose-700'
-                        }`}
-                      >
-                        {bpEval.label}
-                      </span>
-                      <span className="text-slate-400"> · </span>
-                      <span className="text-slate-600">{gluEval.label}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Chip
+                        label={bpEval.label}
+                        variant={bpEval.status}
+                        className="text-xs px-2.5 py-0.5"
+                      />
+                      <span className="text-xs text-stone-600">{gluEval.label}</span>
                     </div>
                     {rec.notes && (
-                      <p className="text-[11px] text-slate-500 leading-relaxed">{rec.notes}</p>
+                      <p className="text-xs text-stone-600 leading-relaxed">{rec.notes}</p>
                     )}
                   </div>
                 );
               })}
+
+              {filteredRecords.length > 5 && (
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMobileVitals((prev) => !prev)}
+                    className="w-full min-h-[44px] px-4 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-200/70 text-sm font-bold text-[#0B5F57] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>
+                      {showAllMobileVitals
+                        ? 'Thu gọn danh sách lần đo'
+                        : `Xem thêm ${filteredRecords.length - 5} lần đo trước đó`}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 ${showAllMobileVitals ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Laptop / Tablet View (>= 768px): High-Density Clinical Table */}
-            <div className="hidden md:block overflow-x-auto border-t border-slate-100">
+            {/* Chế độ Máy tính / Máy tính bảng (>= 768px): Bảng rõ ràng */}
+            <div className="hidden md:block overflow-x-auto border-t border-stone-100">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 text-[11px] font-semibold text-slate-500">
-                    <th className="py-3 pr-4">Thời gian đo</th>
+                  <tr className="border-b border-stone-200 text-xs font-bold text-stone-600">
+                    <th className="py-3 pr-4">Ngày &amp; Giờ đo</th>
                     <th className="py-3 px-3 text-right">Huyết áp (mmHg)</th>
                     <th className="py-3 px-3 text-right">Nhịp tim</th>
-                    <th className="py-3 px-3 text-right">SpO2</th>
+                    <th className="py-3 px-3 text-right">Oxy máu</th>
                     <th className="py-3 px-3 text-right">Đường huyết</th>
                     <th className="py-3 px-3 text-right">Cân nặng</th>
-                    <th className="py-3 px-3">Phân loại Lâm sàng (AHA / ADA)</th>
-                    <th className="py-3 pl-3 text-right">Thao tác</th>
+                    <th className="py-3 px-3">Đánh giá tham khảo</th>
+                    <th className="py-3 pl-3 text-right">Xóa</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
+                <tbody className="divide-y divide-stone-100 text-sm">
                   {filteredRecords.map((rec) => {
                     const bpEval = classifyBloodPressure(rec.systolic, rec.diastolic);
                     const gluEval = classifyBloodGlucose(rec.bloodGlucose, rec.glucoseContext);
                     return (
-                      <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={rec.id} className="hover:bg-[#FAF7F2] transition-colors">
                         <td className="py-3 pr-4 whitespace-nowrap">
-                          <div className="font-semibold text-slate-900 font-mono-tabular">
-                            {rec.date} · {rec.time}
+                          <div className="font-bold text-[#1F2937] tabular-nums">
+                            {formatDateDdMmYyyy(rec.date)} · {formatTime24h(rec.time)}
                           </div>
-                          <div className="text-[11px] text-slate-500">{rec.deviceSource}</div>
+                          <div className="text-xs text-stone-600">
+                            {humanizeDeviceSource(rec.deviceSource)}
+                          </div>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono-tabular font-semibold text-slate-900 whitespace-nowrap">
+                        <td className="py-3 px-3 text-right tabular-nums font-extrabold text-[#1F2937] whitespace-nowrap">
                           {rec.systolic}/{rec.diastolic}
                         </td>
-                        <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
-                          {rec.heartRate} bpm
+                        <td className="py-3 px-3 text-right tabular-nums text-[#1F2937] whitespace-nowrap">
+                          {rec.heartRate} nhịp/p
                         </td>
-                        <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                        <td className="py-3 px-3 text-right tabular-nums text-[#1F2937] whitespace-nowrap">
                           {rec.spo2}%
                         </td>
-                        <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                        <td className="py-3 px-3 text-right tabular-nums text-[#1F2937] whitespace-nowrap">
                           {rec.bloodGlucose} mg/dL
                         </td>
-                        <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                        <td className="py-3 px-3 text-right tabular-nums text-[#1F2937] whitespace-nowrap">
                           {rec.weightKg} kg
                         </td>
                         <td className="py-3 px-3">
-                          <div className="text-xs text-slate-800">
-                            <span
-                              className={`font-semibold ${
-                                bpEval.status === 'normal'
-                                  ? 'text-emerald-700'
-                                  : bpEval.status === 'elevated'
-                                  ? 'text-amber-700'
-                                  : 'text-rose-700'
-                              }`}
-                            >
-                              {bpEval.label}
-                            </span>
-                            <span className="text-slate-400"> · </span>
-                            <span className="text-slate-600">{gluEval.label}</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Chip
+                              label={bpEval.label}
+                              variant={bpEval.status}
+                              className="text-xs px-2.5 py-0.5"
+                            />
+                            <span className="text-xs text-stone-600">{gluEval.label}</span>
                           </div>
                           {rec.notes && (
-                            <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-xs">
+                            <div className="text-xs text-stone-600 mt-0.5 truncate max-w-xs">
                               {rec.notes}
                             </div>
                           )}
@@ -511,7 +523,7 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
                             type="button"
                             onClick={() => onDeleteRecord(rec.id)}
                             aria-label={`Xóa bản ghi ngày ${rec.date} lúc ${rec.time}`}
-                            className="min-h-[34px] min-w-[34px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="min-h-[38px] min-w-[38px] inline-flex items-center justify-center rounded-xl text-stone-500 hover:text-[#DC2626] hover:bg-red-50 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -524,91 +536,105 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
             </div>
           </>
         )}
-      </div>
+      </Card>
 
-      {/* Meals Export Summary Section (Cards on Mobile, Table on Laptop) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+      {/* 3. Nhật ký Bữa ăn */}
+      <Card className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200/80">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Nhật ký Dinh dưỡng &amp; Khẩu phần Ăn (Meals — {meals.length} bữa ăn)
+            <h3 className="text-lg font-bold text-[#1F2937]">
+              Nhật ký Dinh dưỡng &amp; Khẩu phần Ăn ({meals.length} bữa ăn)
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Dữ liệu khẩu phần ăn và đa lượng (Protein, Carbs, Fat) sẵn sàng trích xuất ngoại tuyến
+            <p className="text-sm text-stone-600 mt-0.5">
+              Dữ liệu khẩu phần ăn hằng ngày sẵn sàng tải về để bác sĩ tham khảo
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => handleDownloadCsv('meals')}
-              className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-medium text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              className="min-h-[40px] px-3.5 py-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] border border-stone-300 hover:bg-stone-200/70 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-teal-600" />
-              CSV Meals
+              <Download className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>CSV Bữa ăn</span>
             </button>
             <button
               type="button"
               onClick={() => handleDownloadJson('meals')}
-              className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-medium text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              className="min-h-[40px] px-3.5 py-1.5 text-xs font-bold text-[#1F2937] bg-[#FAF7F2] border border-stone-300 hover:bg-stone-200/70 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <FileJson className="w-3.5 h-3.5 text-indigo-600" />
-              JSON Meals
+              <FileJson className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>JSON Bữa ăn</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Cards for Meals */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {meals.map((meal) => (
+        {/* Chế độ Điện thoại cho Bữa ăn */}
+        <div className="md:hidden divide-y divide-stone-100">
+          {mobileVisibleMeals.map((meal) => (
             <div key={meal.id} className="py-3 space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-900">{meal.foodName}</span>
-                <span className="text-xs font-bold text-teal-700 font-mono-tabular shrink-0">
+                <span className="text-sm font-bold text-[#1F2937]">{meal.foodName}</span>
+                <span className="text-sm font-extrabold text-[#0F766E] tabular-nums shrink-0">
                   {meal.calories} kcal
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-mono-tabular">
-                Bữa {meal.mealType} · {meal.date} {meal.time} · Đạm {meal.proteinG}g · Carb{' '}
-                {meal.carbsG}g · Béo {meal.fatG}g
+              <p className="text-xs text-stone-600 tabular-nums">
+                Bữa {meal.mealType} · {formatDateDdMmYyyy(meal.date)} {formatTime24h(meal.time)} · Đạm{' '}
+                {meal.proteinG}g · Tinh bột {meal.carbsG}g · Béo {meal.fatG}g
               </p>
             </div>
           ))}
+          {meals.length > 4 && (
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={() => setShowAllMobileMeals((prev) => !prev)}
+                className="w-full min-h-[44px] px-4 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-200/70 text-sm font-bold text-[#0B5F57] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>
+                  {showAllMobileMeals ? 'Thu gọn danh sách bữa ăn' : `Xem thêm ${meals.length - 4} bữa ăn`}
+                </span>
+                <ChevronDown className={`w-4 h-4 ${showAllMobileMeals ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Laptop Table for Meals */}
+        {/* Chế độ Máy tính cho Bữa ăn */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 text-[11px] font-semibold text-slate-500">
+              <tr className="border-b border-stone-200 text-xs font-bold text-stone-600">
                 <th className="py-3 pr-4">Ngày &amp; Giờ</th>
                 <th className="py-3 px-3">Bữa ăn</th>
-                <th className="py-3 px-3">Tên món ăn / Khẩu phần</th>
+                <th className="py-3 px-3">Món ăn / Khẩu phần</th>
                 <th className="py-3 px-3 text-right">Năng lượng</th>
-                <th className="py-3 px-3 text-right">Đạm (Protein)</th>
-                <th className="py-3 px-3 text-right">Tinh bột (Carbs)</th>
-                <th className="py-3 pl-3 text-right">Chất béo (Fat)</th>
+                <th className="py-3 px-3 text-right">Chất đạm</th>
+                <th className="py-3 px-3 text-right">Tinh bột</th>
+                <th className="py-3 pl-3 text-right">Chất béo</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
+            <tbody className="divide-y divide-stone-100 text-sm">
               {meals.map((meal) => (
-                <tr key={meal.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3 pr-4 font-mono-tabular text-slate-700 whitespace-nowrap">
-                    {meal.date} · {meal.time}
+                <tr key={meal.id} className="hover:bg-[#FAF7F2] transition-colors">
+                  <td className="py-3 pr-4 tabular-nums text-stone-700 whitespace-nowrap">
+                    {formatDateDdMmYyyy(meal.date)} · {formatTime24h(meal.time)}
                   </td>
-                  <td className="py-3 px-3 font-medium text-slate-800 whitespace-nowrap">
+                  <td className="py-3 px-3 font-semibold text-[#1F2937] whitespace-nowrap">
                     Bữa {meal.mealType}
                   </td>
-                  <td className="py-3 px-3 font-semibold text-slate-900">{meal.foodName}</td>
-                  <td className="py-3 px-3 text-right font-mono-tabular font-semibold text-teal-700 whitespace-nowrap">
+                  <td className="py-3 px-3 font-bold text-[#1F2937]">{meal.foodName}</td>
+                  <td className="py-3 px-3 text-right tabular-nums font-extrabold text-[#0F766E] whitespace-nowrap">
                     {meal.calories} kcal
                   </td>
-                  <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                  <td className="py-3 px-3 text-right tabular-nums text-stone-700 whitespace-nowrap">
                     {meal.proteinG} g
                   </td>
-                  <td className="py-3 px-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                  <td className="py-3 px-3 text-right tabular-nums text-stone-700 whitespace-nowrap">
                     {meal.carbsG} g
                   </td>
-                  <td className="py-3 pl-3 text-right font-mono-tabular text-slate-700 whitespace-nowrap">
+                  <td className="py-3 pl-3 text-right tabular-nums text-stone-700 whitespace-nowrap">
                     {meal.fatG} g
                   </td>
                 </tr>
@@ -616,7 +642,7 @@ export const ClinicalAnalyticsView: React.FC<ClinicalAnalyticsViewProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

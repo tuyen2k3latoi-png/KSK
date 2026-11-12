@@ -200,7 +200,7 @@ export const StatTile: React.FC<StatTileProps> = ({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           {priorityBadge && (
-            <span className="inline-block text-sm font-bold text-[#0B5F57] mb-0.5">
+            <span className="inline-block text-xs font-bold text-[#0B5F57] mb-0.5">
               {priorityBadge}
             </span>
           )}
@@ -213,21 +213,21 @@ export const StatTile: React.FC<StatTileProps> = ({
 
       <div className="flex items-baseline justify-between gap-2 flex-wrap my-0.5">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <div className="text-[28px] sm:text-[32px] font-extrabold text-[#1F2937] tabular-nums leading-none tracking-tight">
+          <div className="text-2xl sm:text-3xl font-extrabold text-[#1F2937] tabular-nums leading-none tracking-tight">
             {valueNode}
           </div>
-          {unit && <span className="text-sm font-semibold text-stone-600">{unit}</span>}
+          {unit && <span className="text-xs sm:text-sm font-semibold text-stone-600">{unit}</span>}
         </div>
         {actionNode}
       </div>
 
       <div className="space-y-1.5 pt-2 border-t border-stone-100">
         <div className="flex flex-wrap items-center justify-between gap-1.5">
-          <Chip label={statusLabel} variant={status} className="px-2.5 py-0.5 text-sm" />
+          <Chip label={statusLabel} variant={status} className="px-2.5 py-0.5 text-xs sm:text-sm" />
           {trend && (
             <span
               title={trend.label}
-              className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-stone-600 bg-[#FAF7F2] px-2 py-0.5 rounded-lg border border-stone-200/80"
+              className="inline-flex items-center gap-1 text-xs font-bold text-stone-600 bg-[#FAF7F2] px-2 py-0.5 rounded-lg border border-stone-200/80"
             >
               {renderTrendIcon()}
               <span>
@@ -241,7 +241,7 @@ export const StatTile: React.FC<StatTileProps> = ({
           )}
         </div>
         {footerNode && (
-          <div className="text-sm text-stone-600 leading-snug">{footerNode}</div>
+          <div className="text-xs sm:text-sm text-stone-600 leading-snug">{footerNode}</div>
         )}
       </div>
     </div>

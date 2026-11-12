@@ -122,11 +122,11 @@ export const CompositeIndexCard: React.FC<CompositeIndexCardProps> = ({
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span
                 data-testid="health-score-value"
-                className="text-[28px] font-extrabold text-[#1F2937] tabular-nums leading-none"
+                className="text-2xl font-extrabold text-[#1F2937] tabular-nums leading-none"
               >
                 {healthScore.score}
               </span>
-              <span className="text-[11px] font-bold text-stone-500 mt-1">
+              <span className="text-xs font-bold text-stone-500 mt-1">
                 thang 100
               </span>
             </div>

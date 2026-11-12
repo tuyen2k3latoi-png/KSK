@@ -67,7 +67,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
         )}
 
         <div>
-          <label htmlFor="login-phone-input" className="block text-[14px] font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] mb-0.5">
+          <label htmlFor="login-phone-input" className="block text-sm font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] mb-0.5">
             Số điện thoại
           </label>
           <div className="relative flex items-center">
@@ -84,13 +84,13 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
               }}
               placeholder="0912345678 (10 số)"
               data-testid="login-phone-input"
-              className="w-full min-h-[42px] h-[42px] pl-10 pr-3.5 py-1.5 text-[15px] font-semibold tabular-nums bg-white/58 focus:bg-white/88 border border-white/85 focus:border-[#0F766E] focus-visible:ring-2 focus-visible:ring-[#0F766E]/35 rounded-2xl text-[#0B3B36] placeholder:text-[#173B3A]/65 shadow-2xs outline-none transition-colors"
+              className="w-full min-h-[42px] pl-10 pr-3.5 py-1.5 text-sm font-semibold tabular-nums bg-white/58 focus:bg-white/88 border border-white/85 focus:border-[#0F766E] focus-visible:ring-2 focus-visible:ring-[#0F766E]/35 rounded-2xl text-[#0B3B36] placeholder:text-[#173B3A]/65 shadow-2xs outline-none transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="login-password-input" className="block text-[14px] font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] mb-0.5">
+          <label htmlFor="login-password-input" className="block text-sm font-extrabold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] mb-0.5">
             Mật khẩu
           </label>
           <div className="relative flex items-center">
@@ -106,7 +106,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
               }}
               placeholder="Nhập mật khẩu"
               data-testid="login-password-input"
-              className="w-full min-h-[42px] h-[42px] pl-10 pr-11 py-1.5 text-[15px] font-semibold bg-white/58 focus:bg-white/88 border border-white/85 focus:border-[#0F766E] focus-visible:ring-2 focus-visible:ring-[#0F766E]/35 rounded-2xl text-[#0B3B36] placeholder:text-[#173B3A]/65 shadow-2xs outline-none transition-colors"
+              className="w-full min-h-[42px] pl-10 pr-11 py-1.5 text-sm font-semibold bg-white/58 focus:bg-white/88 border border-white/85 focus:border-[#0F766E] focus-visible:ring-2 focus-visible:ring-[#0F766E]/35 rounded-2xl text-[#0B3B36] placeholder:text-[#173B3A]/65 shadow-2xs outline-none transition-colors"
             />
             <button
               type="button"
@@ -124,7 +124,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
         <div className="flex items-center justify-between gap-2">
           <label
             htmlFor="remember-login-checkbox"
-            className="inline-flex items-center gap-2 min-h-[34px] text-[13.5px] font-bold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)] cursor-pointer select-none"
+            className="inline-flex items-center gap-2 min-h-[34px] text-xs font-bold text-[#0B3B36] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)] cursor-pointer select-none"
           >
             <input
               id="remember-login-checkbox"
@@ -139,7 +139,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
             type="button"
             onClick={onOpenForgotModal}
             data-testid="forgot-password-link"
-            className="min-h-[34px] px-1 text-[13.5px] font-extrabold text-[#0B5F57] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] underline hover:text-[#0F766E] cursor-pointer shrink-0"
+            className="min-h-[34px] px-1 text-xs font-extrabold text-[#0B5F57] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] underline hover:text-[#0F766E] cursor-pointer shrink-0"
           >
             Quên mật khẩu?
           </button>
@@ -149,7 +149,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
           type="submit"
           disabled={isSubmitting || lockRemainingSec > 0}
           data-testid="login-submit-btn"
-          className="w-full min-h-[46px] h-[46px] px-5 rounded-full bg-gradient-to-r from-[#0B5F57] to-[#0F766E] hover:from-[#094a44] hover:to-[#0B5F57] disabled:opacity-60 text-white text-[17px] font-bold transition-all flex items-center justify-center cursor-pointer shadow-md"
+          className="w-full min-h-[46px] px-5 py-2 rounded-full bg-gradient-to-r from-[#0B5F57] to-[#0F766E] hover:from-[#094a44] hover:to-[#0B5F57] disabled:opacity-60 text-white text-base font-bold transition-all flex items-center justify-center cursor-pointer shadow-md"
         >
           {lockRemainingSec > 0
             ? `Tạm khóa (${lockRemainingSec}s)`
@@ -171,7 +171,7 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
           onClick={onGoogleSignIn}
           disabled={isGoogleLoading}
           data-testid="welcome-google-login-btn"
-          className="w-full min-h-[40px] h-[40px] px-3.5 rounded-full bg-white/62 hover:bg-white/88 border border-white/85 text-[#0B3B36] text-[14px] font-bold inline-flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
+          className="w-full min-h-[40px] px-3.5 py-1.5 rounded-full bg-white/62 hover:bg-white/88 border border-white/85 text-[#0B3B36] text-sm font-bold inline-flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
         >
           <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" />
@@ -186,11 +186,11 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
           type="button"
           onClick={onOpenVneidModal}
           data-testid="vneid-coming-soon-btn"
-          className="w-full min-h-[40px] h-[40px] px-2.5 rounded-full bg-white/62 hover:bg-white/88 border border-white/85 text-[#0B3B36] text-[12.5px] sm:text-[13px] font-bold inline-flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
+          className="w-full min-h-[40px] px-2.5 py-1.5 rounded-full bg-white/62 hover:bg-white/88 border border-white/85 text-[#0B3B36] text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
         >
           <Shield className="w-4 h-4 text-[#0F766E] shrink-0" />
           <span>Đăng nhập bằng VNeID / BHXH</span>
-          <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/35 border border-[#F59E0B]/60 text-[#92400E] text-[10.5px] font-bold shrink-0">
+          <span className="px-2 py-0.5 rounded-full bg-[#F59E0B]/35 border border-[#F59E0B]/60 text-[#92400E] text-xs font-bold shrink-0">
             Sắp ra mắt
           </span>
         </button>
@@ -200,18 +200,18 @@ export const LoginSocialAndDemoFooter: React.FC<LoginFormAndActionsProps> = ({
         data-testid="quick-demo-box"
         className="pt-0.5 flex items-center justify-center gap-1 text-center whitespace-nowrap"
       >
-        <span className="text-[12px] sm:text-[12.5px] font-semibold text-[#173B3A]">Chưa có tài khoản?</span>
+        <span className="text-xs font-semibold text-[#173B3A]">Chưa có tài khoản?</span>
         <button
           type="button"
           onClick={onAutoFillDemo}
           data-testid="autofill-demo-btn"
-          className="min-h-[28px] px-0.5 py-0.5 text-[12px] sm:text-[12.5px] font-bold text-[#0B5F57] underline hover:text-[#0F766E] cursor-pointer"
+          className="min-h-[28px] px-0.5 py-0.5 text-xs font-bold text-[#0B5F57] underline hover:text-[#0F766E] cursor-pointer"
         >
           Thử ngay tài khoản demo
         </button>
         <span
           data-testid="demo-pill-label"
-          className="px-1.5 py-0.5 rounded-md bg-[#F59E0B] text-white text-[10.5px] font-extrabold tracking-wide shadow-2xs shrink-0"
+          className="px-1.5 py-0.5 rounded-md bg-[#F59E0B] text-white text-xs font-extrabold tracking-wide shadow-2xs shrink-0"
         >
           DEMO
         </span>
