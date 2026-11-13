@@ -44,6 +44,7 @@ interface UseVitalsParams {
   setProfile: React.Dispatch<React.SetStateAction<UserMedicalProfile>>;
   bhytVisits: BhytVisitRecord[];
   cloudUser: User | null;
+  onVitalRecorded?: (record: VitalRecord) => void;
 }
 
 export function useVitals({
@@ -51,6 +52,7 @@ export function useVitals({
   setProfile,
   bhytVisits,
   cloudUser,
+  onVitalRecorded,
 }: UseVitalsParams) {
   const [vitals, setVitals] = useState<VitalRecord[]>(() =>
     readStorageJson<VitalRecord[]>(STORAGE_KEYS.VITALS, INITIAL_VITAL_RECORDS)
@@ -121,6 +123,7 @@ export function useVitals({
     const updatedProfile = { ...profile, weightKg: newRecord.weightKg };
     setVitals((prev) => [newRecord, ...prev]);
     setProfile(updatedProfile);
+    onVitalRecorded?.(newRecord);
     if (cloudUser) {
       syncUserProfileToFirestore(cloudUser.uid, updatedProfile, waterIntakeMl)
         .then(() => saveVitalToFirestore(cloudUser.uid, newRecord))

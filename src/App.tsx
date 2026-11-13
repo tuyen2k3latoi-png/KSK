@@ -4,6 +4,7 @@ import { useProfile } from './hooks/useProfile';
 import { useVitals } from './hooks/useVitals';
 import { useMedications } from './hooks/useMedications';
 import { useAccountActions } from './hooks/useAccountActions';
+import { useVoiceFeedback } from './hooks/useVoiceFeedback';
 import { LogVitalModal } from './components/LogVitalModal';
 import { NutritionActivityView } from './components/NutritionActivityView';
 import { MedicationCareView } from './components/MedicationCareView';
@@ -11,18 +12,16 @@ import { UserGuideView } from './components/UserGuideView';
 import { VneidWelcomeLoginScreen } from './components/VneidWelcomeLoginScreen';
 import { MedicationPushBanner } from './components/MedicationPushBanner';
 import { OfflineIndicator } from './components/PWAInstallButton';
+import { VoiceFeedbackToast } from './components/ui/VoiceFeedbackToast';
 import { PlayStoreComplianceModal } from './components/PlayStoreComplianceModal';
+import { EmergencyCallModal } from './components/EmergencyCallModal';
+import { evaluateEmergencyVitalAlert } from './services/emergencyService';
 import {
-  ActiveModule,
-  AppFooter,
-  AppMobileBottomNav,
-  AppTopHeader,
-  DesktopSidebarNav,
-  FloatingLogVitalFab,
-  Nd13PrivacyConsentBanner,
-  RecordsSubTab,
+  ActiveModule, AppFooter, AppMobileBottomNav, AppTopHeader,
+  DesktopSidebarNav, FloatingLogVitalFab, Nd13PrivacyConsentBanner, RecordsSubTab,
 } from './components/layout/AppTopHeaderAndNav';
 import { DashboardOverviewView } from './components/dashboard/DashboardOverviewView';
+import { MinimalDashboardView } from './components/dashboard/MinimalDashboardView';
 import { RecordsModuleView } from './components/records/RecordsModuleView';
 
 export default function App() {
@@ -30,66 +29,48 @@ export default function App() {
   const [recordsSubTab, setRecordsSubTab] = useState<RecordsSubTab>('bhyt');
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isComplianceModalOpen, setIsComplianceModalOpen] = useState(false);
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
 
   const profileState = useProfile();
+  const voice = useVoiceFeedback(profileState.isVoiceFeedbackEnabled);
   const vitalsState = useVitals({
-    profile: profileState.profile,
-    setProfile: profileState.setProfile,
-    bhytVisits: profileState.bhytVisits,
-    cloudUser: profileState.cloudUser,
+    profile: profileState.profile, setProfile: profileState.setProfile,
+    bhytVisits: profileState.bhytVisits, cloudUser: profileState.cloudUser,
+    onVitalRecorded: voice.announceVitalRecorded,
   });
-
   const medsState = useMedications({
-    isAuthenticated: profileState.isAuthenticated,
-    profile: profileState.profile,
-    waterIntakeMl: vitalsState.waterIntakeMl,
-    cloudUser: profileState.cloudUser,
-    currentDayCode: vitalsState.currentDayCode,
-    workoutSchedules: vitalsState.workoutSchedules,
-    setWorkoutSchedules: vitalsState.setWorkoutSchedules,
-    setWorkouts: vitalsState.setWorkouts,
+    isAuthenticated: profileState.isAuthenticated, profile: profileState.profile,
+    waterIntakeMl: vitalsState.waterIntakeMl, cloudUser: profileState.cloudUser,
+    currentDayCode: vitalsState.currentDayCode, workoutSchedules: vitalsState.workoutSchedules,
+    setWorkoutSchedules: vitalsState.setWorkoutSchedules, setWorkouts: vitalsState.setWorkouts,
     onUpdateWorkoutSchedule: vitalsState.handleUpdateWorkoutSchedule,
+    onMedicationToggled: voice.announceMedicationToggled,
   });
 
   const {
-    handleLoginWithAccount,
-    handleApplyVisitToTracker,
-    handleResetSampleData,
-    handleExportAllUserData,
-    handleDeleteAllUserData,
+    handleLoginWithAccount, handleApplyVisitToTracker, handleResetSampleData,
+    handleExportAllUserData, handleDeleteAllUserData,
   } = useAccountActions({ profileState, vitalsState, medsState });
 
-  const healthScore = calculateHealthScore(
-    vitalsState.latestVital,
-    vitalsState.bmi,
-    medsState.medAdherence.adherencePercent
-  );
+  const healthScore = calculateHealthScore(vitalsState.latestVital, vitalsState.bmi, medsState.medAdherence.adherencePercent);
+  const emergencyAlert = evaluateEmergencyVitalAlert({
+    bpStatus: vitalsState.bpEval.status, gluStatus: vitalsState.gluEval.status,
+    scoreStatus: healthScore.status, latestVital: vitalsState.latestVital,
+  });
 
   if (!profileState.isAuthenticated) {
     return (
       <>
         <OfflineIndicator />
         <VneidWelcomeLoginScreen
-          onLoginSuccess={handleLoginWithAccount}
-          cloudUser={profileState.cloudUser}
-          onGoogleAuthSuccess={(u, hasToken) => {
-            profileState.setCloudUser(u);
-            profileState.setHasCalendarToken(hasToken);
-          }}
-          onOpenComplianceModal={() => setIsComplianceModalOpen(true)}
-          fontSizeMode={profileState.fontSizeMode}
-          onChangeFontSizeMode={profileState.setFontSizeMode}
+          onLoginSuccess={handleLoginWithAccount} onOpenComplianceModal={() => setIsComplianceModalOpen(true)}
+          fontSizeMode={profileState.fontSizeMode} onChangeFontSizeMode={profileState.setFontSizeMode}
         />
         <PlayStoreComplianceModal
-          isOpen={isComplianceModalOpen}
-          onClose={() => setIsComplianceModalOpen(false)}
-          onDeleteAllUserData={handleDeleteAllUserData}
-          onExportAllUserData={handleExportAllUserData}
+          isOpen={isComplianceModalOpen} onClose={() => setIsComplianceModalOpen(false)}
+          onDeleteAllUserData={handleDeleteAllUserData} onExportAllUserData={handleExportAllUserData}
           nd13ConsentAcceptedAt={profileState.nd13Consent?.accepted ? profileState.nd13Consent.acceptedAt : null}
-          onWithdrawNd13Consent={() => {
-            profileState.handleWithdrawNd13Consent();
-            setIsComplianceModalOpen(false);
-          }}
+          onWithdrawNd13Consent={() => { profileState.handleWithdrawNd13Consent(); setIsComplianceModalOpen(false); }}
         />
       </>
     );
@@ -99,8 +80,7 @@ export default function App() {
     <div className="min-h-dvh w-full max-w-full overflow-x-hidden flex flex-col bg-[#FAF7F2] text-[#1F2937] pb-28 md:pb-10">
       <OfflineIndicator />
       <Nd13PrivacyConsentBanner
-        nd13Consent={profileState.nd13Consent}
-        onAcceptConsent={profileState.handleAcceptNd13Consent}
+        nd13Consent={profileState.nd13Consent} onAcceptConsent={profileState.handleAcceptNd13Consent}
         onOpenPrivacyDetails={() => setIsComplianceModalOpen(true)}
       />
       <MedicationPushBanner
@@ -108,35 +88,49 @@ export default function App() {
         snoozeMinutes={medsState.notificationSettings.snoozeMinutes}
         soundEnabled={medsState.notificationSettings.soundEnabled}
         onConfirmTaken={medsState.handleConfirmPushNotification}
-        onSnooze={medsState.handleSnoozePushNotification}
-        onDismiss={medsState.handleDismissPushNotification}
+        onSnooze={medsState.handleSnoozePushNotification} onDismiss={medsState.handleDismissPushNotification}
       />
 
       <AppTopHeader
-        activeModule={activeModule}
-        onSelectModule={setActiveModule}
-        onOpenLogModal={() => setIsLogModalOpen(true)}
-        profile={profileState.profile}
-        isDemoMode={profileState.isDemoMode}
-        fontSizeMode={profileState.fontSizeMode}
-        onChangeFontSizeMode={profileState.setFontSizeMode}
+        activeModule={activeModule} onSelectModule={setActiveModule} onOpenLogModal={() => setIsLogModalOpen(true)}
+        profile={profileState.profile} isDemoMode={profileState.isDemoMode}
+        fontSizeMode={profileState.fontSizeMode} onChangeFontSizeMode={profileState.setFontSizeMode}
         bhytVisitsCount={profileState.bhytVisits.length}
-        onOpenBhytRecords={() => {
-          setActiveModule('records');
-          setRecordsSubTab('bhyt');
-        }}
-        onOpenPrivacySettings={() => setIsComplianceModalOpen(true)}
-        onSwitchProfile={profileState.handleLogoutToWelcomeScreen}
+        onOpenBhytRecords={() => { setActiveModule('records'); setRecordsSubTab('bhyt'); }}
+        onOpenPrivacySettings={() => setIsComplianceModalOpen(true)} onSwitchProfile={profileState.handleLogoutToWelcomeScreen}
+        onOpenEmergencyCall={() => setIsEmergencyModalOpen(true)} isEmergencyAlarming={emergencyAlert.isAlarming}
+        isMinimalMode={profileState.isMinimalMode} onToggleMinimalMode={profileState.toggleMinimalMode}
+        isVoiceFeedbackEnabled={profileState.isVoiceFeedbackEnabled}
+        onToggleVoiceFeedback={profileState.toggleVoiceFeedback} onTestVoiceFeedback={voice.announceTestVoice}
       />
 
       <div className="max-w-7xl w-full mx-auto px-3.5 sm:px-6 pt-4 sm:pt-6 flex-1 min-w-0 flex flex-col md:flex-row gap-6 items-start">
-        <DesktopSidebarNav
-          activeModule={activeModule}
-          onSelectModule={setActiveModule}
-          onOpenLogModal={() => setIsLogModalOpen(true)}
-        />
+        {!profileState.isMinimalMode && (
+          <DesktopSidebarNav
+            activeModule={activeModule}
+            onSelectModule={setActiveModule}
+            onOpenLogModal={() => setIsLogModalOpen(true)}
+            onOpenEmergencyCall={() => setIsEmergencyModalOpen(true)}
+            isEmergencyAlarming={emergencyAlert.isAlarming}
+          />
+        )}
 
         <main className="w-full flex-1 min-w-0 space-y-4">
+          {profileState.isMinimalMode ? (
+            <MinimalDashboardView
+              profile={profileState.profile}
+              latestVital={vitalsState.latestVital}
+              bpEval={vitalsState.bpEval}
+              medications={medsState.medications}
+              nextDoseInfo={medsState.notifEval.nextDose}
+              emergencyAlert={emergencyAlert}
+              onToggleMedication={medsState.handleToggleMedication}
+              onOpenLogModal={() => setIsLogModalOpen(true)}
+              onOpenEmergencyCall={() => setIsEmergencyModalOpen(true)}
+              onExitMinimalMode={() => profileState.setMinimalMode(false)}
+            />
+          ) : (
+            <>
           {activeModule === 'dashboard' && (
             <DashboardOverviewView
               profile={profileState.profile}
@@ -160,14 +154,9 @@ export default function App() {
               isDemoMode={profileState.isDemoMode}
               displayedHeaderBhyt={profileState.displayedHeaderBhyt}
               showHeaderBhytFull={profileState.showHeaderBhytFull}
-              onToggleShowHeaderBhytFull={() =>
-                profileState.setShowHeaderBhytFull((prev) => !prev)
-              }
+              onToggleShowHeaderBhytFull={() => profileState.setShowHeaderBhytFull((prev) => !prev)}
               bhytVisitsCount={profileState.bhytVisits.length}
-              onOpenBhytRecords={() => {
-                setActiveModule('records');
-                setRecordsSubTab('bhyt');
-              }}
+              onOpenBhytRecords={() => { setActiveModule('records'); setRecordsSubTab('bhyt'); }}
               onOpenLogModal={() => setIsLogModalOpen(true)}
               onAddWater={vitalsState.handleAddWater}
               onAddVitalRecord={vitalsState.handleAddVitalRecord}
@@ -177,6 +166,7 @@ export default function App() {
               onToggleWorkoutScheduleComplete={medsState.handleToggleWorkoutScheduleComplete}
               onTriggerTestWorkoutPush={() => medsState.handleTriggerTestWorkoutPush()}
               onNavigateModule={setActiveModule}
+              onOpenEmergencyCall={() => setIsEmergencyModalOpen(true)}
             />
           )}
 
@@ -234,14 +224,8 @@ export default function App() {
               waterIntakeMl={vitalsState.waterIntakeMl}
               cloudUser={profileState.cloudUser}
               hasCalendarToken={profileState.hasCalendarToken}
-              onAuthSuccess={(u, hasToken) => {
-                profileState.setCloudUser(u);
-                profileState.setHasCalendarToken(hasToken);
-              }}
-              onSignOut={() => {
-                profileState.setCloudUser(null);
-                profileState.setHasCalendarToken(false);
-              }}
+              onAuthSuccess={(u, hasToken) => { profileState.setCloudUser(u); profileState.setHasCalendarToken(hasToken); }}
+              onSignOut={() => { profileState.setCloudUser(null); profileState.setHasCalendarToken(false); }}
               onOpenVneidLogin={profileState.handleLogoutToWelcomeScreen}
               onApplyVisitToTracker={handleApplyVisitToTracker}
               onAddBhytVisit={profileState.handleAddBhytVisit}
@@ -259,20 +243,19 @@ export default function App() {
               onNavigateModule={setActiveModule}
             />
           )}
+            </>
+          )}
         </main>
       </div>
 
-      {/* Nút nổi (FAB) "+" Ghi nhận chỉ số */}
-      <FloatingLogVitalFab onClick={() => setIsLogModalOpen(true)} />
+      {!profileState.isMinimalMode && (
+        <>
+          <FloatingLogVitalFab onClick={() => setIsLogModalOpen(true)} />
+          <AppMobileBottomNav activeModule={activeModule} onSelectModule={setActiveModule} />
+        </>
+      )}
 
-      {/* Thanh điều hướng dưới 5 mục (Mobile) */}
-      <AppMobileBottomNav activeModule={activeModule} onSelectModule={setActiveModule} />
-
-      <AppFooter
-        onOpenComplianceModal={() => setIsComplianceModalOpen(true)}
-        onNavigateGuide={() => setActiveModule('guide')}
-        onResetSampleData={handleResetSampleData}
-      />
+      <AppFooter onOpenComplianceModal={() => setIsComplianceModalOpen(true)} onNavigateGuide={() => setActiveModule('guide')} onResetSampleData={handleResetSampleData} />
 
       <LogVitalModal
         isOpen={isLogModalOpen}
@@ -280,19 +263,23 @@ export default function App() {
         onSave={vitalsState.handleAddVitalRecord}
         defaultWeightKg={vitalsState.latestVital.weightKg}
       />
+      <EmergencyCallModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => setIsEmergencyModalOpen(false)}
+        profile={profileState.profile}
+        alertEvaluation={emergencyAlert}
+        latestVital={vitalsState.latestVital}
+        onSaveContacts={(contacts) => profileState.handleSaveEmergencyContacts(contacts, vitalsState.waterIntakeMl)}
+      />
       <PlayStoreComplianceModal
         isOpen={isComplianceModalOpen}
         onClose={() => setIsComplianceModalOpen(false)}
         onDeleteAllUserData={handleDeleteAllUserData}
         onExportAllUserData={handleExportAllUserData}
-        nd13ConsentAcceptedAt={
-          profileState.nd13Consent?.accepted ? profileState.nd13Consent.acceptedAt : null
-        }
-        onWithdrawNd13Consent={() => {
-          profileState.handleWithdrawNd13Consent();
-          setIsComplianceModalOpen(false);
-        }}
+        nd13ConsentAcceptedAt={profileState.nd13Consent?.accepted ? profileState.nd13Consent.acceptedAt : null}
+        onWithdrawNd13Consent={() => { profileState.handleWithdrawNd13Consent(); setIsComplianceModalOpen(false); }}
       />
+      <VoiceFeedbackToast message={voice.voiceAnnouncement} onDismiss={voice.dismissAnnouncement} />
     </div>
   );
 }

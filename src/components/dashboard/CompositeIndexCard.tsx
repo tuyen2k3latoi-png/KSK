@@ -26,6 +26,7 @@ interface CompositeIndexCardProps {
     label: string;
   };
   medAdherencePercent: number;
+  onOpenEmergencyCall?: () => void;
 }
 
 /**
@@ -40,6 +41,7 @@ export const CompositeIndexCard: React.FC<CompositeIndexCardProps> = ({
   bpEval,
   gluEval,
   medAdherencePercent,
+  onOpenEmergencyCall,
 }) => {
   const [showScoreInfoPopover, setShowScoreInfoPopover] = useState(false);
 
@@ -52,45 +54,47 @@ export const CompositeIndexCard: React.FC<CompositeIndexCardProps> = ({
 
   return (
     <Card className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-stone-100">
+      <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-stone-100">
         <div className="flex items-center gap-2">
           <h2
             data-testid="reference-composite-index-title"
             className="text-lg sm:text-xl font-bold text-[#1F2937]"
           >
-            Chỉ số tổng hợp tham khảo
+            Điểm sức khỏe hôm nay
           </h2>
           <button
             type="button"
             onClick={() => setShowScoreInfoPopover((prev) => !prev)}
-            aria-label="Giải thích cách tính Chỉ số tổng hợp tham khảo"
+            aria-label="Cách tính điểm sức khỏe"
             data-testid="health-score-info-btn"
             className="min-w-[40px] min-h-[40px] rounded-xl bg-[#FAF7F2] hover:bg-[#0F766E]/10 border border-stone-200 text-[#0B5F57] inline-flex items-center justify-center cursor-pointer transition-colors"
           >
             <Info className="w-5 h-5" />
           </button>
         </div>
-        <span className="text-sm font-semibold text-stone-600 bg-[#FAF7F2] border border-stone-200 px-3 py-1 rounded-xl">
-          Thông tin tham khảo hằng ngày
-        </span>
+        {onOpenEmergencyCall && (
+          <button
+            type="button"
+            onClick={onOpenEmergencyCall}
+            data-testid="home-emergency-call-btn"
+            className="min-h-[42px] px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-[#DC2626] text-sm font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+          >
+            <PhoneCall className="w-4 h-4 shrink-0" />
+            <span>Gọi khẩn cấp</span>
+          </button>
+        )}
       </div>
 
       {showScoreInfoPopover && (
         <div
           data-testid="health-score-info-popover"
-          className="p-4 rounded-2xl bg-[#FAF7F2] border border-stone-200 text-sm text-[#1F2937] space-y-2 leading-relaxed"
+          className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-stone-200 text-sm text-[#1F2937] space-y-1.5 leading-relaxed"
         >
-          <p className="font-bold text-[#0B5F57] text-base">
-            Cách tính Chỉ số tổng hợp tham khảo (Thang 100 điểm):
+          <p className="font-bold text-[#0B5F57]">
+            Tính từ 6 yếu tố: Huyết áp, Đường huyết, Nhịp tim &amp; SpO2, BMI, Giấc ngủ và Uống thuốc.
           </p>
-          <p>
-            Tổng hợp từ 6 yếu tố hằng ngày: Huyết áp, Đường huyết, Nhịp tim &amp; Oxy máu, Cân nặng BMI, Giấc ngủ và Tỷ lệ uống thuốc đúng giờ.
-          </p>
-          <p className="text-[#0B5F57] font-semibold">
-            • Quy tắc an toàn: Điểm số sẽ <strong>không vào mức &ldquo;Tối ưu&rdquo;</strong> nếu uống thuốc dưới 80% hoặc có bất kỳ chỉ số nào ở mức <em>Cần lưu ý / Cần chú ý ngay</em>.
-          </p>
-          <p className="text-[#DC2626] font-semibold">
-            • Lưu ý: Chỉ số này giúp gia đình theo dõi thói quen sinh hoạt, không thay thế chẩn đoán của bác sĩ.
+          <p className="text-stone-700">
+            • Nếu uống thuốc dưới 80% hoặc có chỉ số cao, điểm sẽ nhắc cần lưu ý. Chỉ dùng để theo dõi hằng ngày.
           </p>
         </div>
       )}
@@ -186,7 +190,7 @@ export const CompositeIndexCard: React.FC<CompositeIndexCardProps> = ({
         <div
           role="alert"
           data-testid="emergency-115-guidance"
-          className="p-4 rounded-2xl bg-[#DC2626] text-white text-sm sm:text-base space-y-1.5 shadow-sm"
+          className="p-4 rounded-2xl bg-[#DC2626] text-white text-sm sm:text-base space-y-2.5 shadow-sm"
         >
           <div className="font-bold flex items-center gap-2 text-base">
             <PhoneCall className="w-5 h-5 shrink-0" />
@@ -195,6 +199,17 @@ export const CompositeIndexCard: React.FC<CompositeIndexCardProps> = ({
           <p className="leading-relaxed">
             Nếu chỉ số huyết áp &ge; 180/120 mmHg hoặc đi kèm đau tức ngực, khó thở, đau đầu dữ dội, tê yếu tay chân: hãy nghỉ ngơi ngay và gọi số cấp cứu <strong>115</strong> hoặc nhờ người thân đưa đến cơ sở y tế gần nhất.
           </p>
+          {onOpenEmergencyCall && (
+            <button
+              type="button"
+              onClick={onOpenEmergencyCall}
+              data-testid="alert-emergency-call-btn"
+              className="min-h-[48px] px-4 py-2 rounded-xl bg-white hover:bg-red-50 text-[#DC2626] text-base font-extrabold inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+            >
+              <PhoneCall className="w-5 h-5 shrink-0" />
+              <span>Gọi ngay Bác sĩ / Người thân / 115</span>
+            </button>
+          )}
         </div>
       )}
     </Card>

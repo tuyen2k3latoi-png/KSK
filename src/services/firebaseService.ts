@@ -1,8 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
-  signInWithPopup,
-  GoogleAuthProvider,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
@@ -34,14 +32,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 
-// Google Workspace OAuth scopes (Least privilege: Google Calendar events)
-export const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
-
-const provider = new GoogleAuthProvider();
-SCOPES.forEach((scope) => provider.addScope(scope));
-
 // In-memory OAuth access token cache (NEVER persisted to localStorage/sessionStorage)
-let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 
 export enum OperationType {
@@ -113,35 +104,12 @@ export const initAuth = (
 ): Unsubscribe => {
   return onAuthStateChanged(auth, (user: User | null) => {
     if (user) {
-      if (cachedAccessToken) {
-        onUserChanged(user, true);
-      } else if (!isSigningIn) {
-        cachedAccessToken = null;
-        onUserChanged(user, false);
-      }
+      onUserChanged(user, Boolean(cachedAccessToken));
     } else {
       cachedAccessToken = null;
       onUserChanged(null, false);
     }
   });
-};
-
-export const googleSignIn = async (): Promise<{
-  user: User;
-  accessToken: string | null;
-}> => {
-  try {
-    isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    cachedAccessToken = credential?.accessToken || null;
-    return { user: result.user, accessToken: cachedAccessToken };
-  } catch (error) {
-    console.error('Sign in error:', error);
-    throw error;
-  } finally {
-    isSigningIn = false;
-  }
 };
 
 export const getAccessToken = async (): Promise<string | null> => {
@@ -177,7 +145,9 @@ export async function syncUserProfileToFirestore(
     heightCm: Math.max(40, Math.min(260, Number(profile.heightCm) || 172)),
     targetWeightKg: Math.max(20, Math.min(300, Number(profile.targetWeightKg) || 65)),
     bloodType: String(profile.bloodType || 'O+').slice(0, 10),
-    primaryDoctor: String(profile.primaryDoctor || 'BS.CKII Lê Hoàng Nam').slice(0, 150),
+    primaryDoctor: `${profile.primaryDoctor || 'BS.CKII Lê Hoàng Nam'}${
+      profile.primaryDoctorPhone ? ` (${profile.primaryDoctorPhone})` : ''
+    }`.slice(0, 150),
     emergencyContact: `${profile.emergencyContactName} (${profile.emergencyContactPhone})`.slice(
       0,
       150

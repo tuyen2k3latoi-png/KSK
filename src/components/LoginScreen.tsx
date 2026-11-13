@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HeartPulse } from 'lucide-react';
-import { User } from 'firebase/auth';
 import { CitizenHealthAccount } from '../types/health';
 import { FontSizeMode } from '../utils/storage';
-import { googleSignIn } from '../services/firebaseService';
 import {
   defaultLoginRateLimiter,
   DEMO_PASSWORD,
@@ -23,8 +21,6 @@ import { RegisterForm } from './auth/RegisterForm';
 
 export interface LoginScreenProps {
   onLoginSuccess: (account: CitizenHealthAccount) => void;
-  cloudUser?: User | null;
-  onGoogleAuthSuccess?: (user: User, hasCalendarToken: boolean) => void;
   onOpenComplianceModal?: () => void;
   fontSizeMode?: FontSizeMode;
   onChangeFontSizeMode?: (mode: FontSizeMode) => void;
@@ -32,7 +28,6 @@ export interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
-  onGoogleAuthSuccess,
   onOpenComplianceModal,
   fontSizeMode = 'normal',
   onChangeFontSizeMode,
@@ -45,7 +40,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [demoAutofillHint, setDemoAutofillHint] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [lockRemainingSec, setLockRemainingSec] = useState(0);
   const [isVneidModalOpen, setIsVneidModalOpen] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -115,28 +109,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       );
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setErrorMessage(null);
-    setIsGoogleLoading(true);
-    try {
-      const res = await googleSignIn();
-      if (onGoogleAuthSuccess) onGoogleAuthSuccess(res.user, Boolean(res.accessToken));
-      onLoginSuccess(
-        buildEmptyPersonalProfile({
-          fullNameInput: res.user.displayName || 'Hồ sơ Google của tôi',
-          birthYearInput: '1966',
-          genderInput: 'male',
-          identifierInput: '',
-          hospitalInput: 'Bệnh viện Đa khoa Khu vực',
-        })
-      );
-    } catch {
-      setErrorMessage('Không thể mở cửa sổ đăng nhập Google lúc này. Bạn có thể dùng tài khoản Demo.');
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -246,9 +218,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 setDemoAutofillHint={setDemoAutofillHint}
                 isSubmitting={isSubmitting}
                 lockRemainingSec={lockRemainingSec}
-                isGoogleLoading={isGoogleLoading}
                 onLoginSubmit={handleLoginSubmit}
-                onGoogleSignIn={handleGoogleSignIn}
                 onOpenVneidModal={() => setIsVneidModalOpen(true)}
                 onOpenForgotModal={() => setIsForgotModalOpen(true)}
                 onAutoFillDemo={handleAutoFillDemo}

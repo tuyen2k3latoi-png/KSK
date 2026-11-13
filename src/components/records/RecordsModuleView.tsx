@@ -79,7 +79,7 @@ export const RecordsModuleView: React.FC<RecordsModuleViewProps> = ({
           }`}
         >
           <FileHeart className="w-4 h-4 shrink-0" />
-          <span>1. Thẻ BHYT &amp; Lịch sử khám ({bhytVisits.length})</span>
+          <span>1. Thẻ BHYT ({bhytVisits.length})</span>
         </button>
         <button
           type="button"
@@ -87,14 +87,14 @@ export const RecordsModuleView: React.FC<RecordsModuleViewProps> = ({
           aria-selected={recordsSubTab === 'history'}
           onClick={() => onChangeRecordsSubTab('history')}
           data-testid="records-subtab-history"
-          className={`flex-1 min-w-[200px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[170px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
             recordsSubTab === 'history'
               ? 'bg-[#0F766E] text-white shadow-xs'
               : 'bg-[#FAF7F2] text-[#1F2937] hover:bg-stone-200/60'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4 shrink-0" />
-          <span>2. Nhật ký đo &amp; Tải sổ (CSV/JSON)</span>
+          <span>2. Nhật ký &amp; Tải sổ</span>
         </button>
         <button
           type="button"
@@ -102,14 +102,14 @@ export const RecordsModuleView: React.FC<RecordsModuleViewProps> = ({
           aria-selected={recordsSubTab === 'devices'}
           onClick={() => onChangeRecordsSubTab('devices')}
           data-testid="records-subtab-devices"
-          className={`flex-1 min-w-[200px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[170px] min-h-[48px] px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer ${
             recordsSubTab === 'devices'
               ? 'bg-[#0F766E] text-white shadow-xs'
               : 'bg-[#FAF7F2] text-[#1F2937] hover:bg-stone-200/60'
           }`}
         >
           <Bluetooth className="w-4 h-4 shrink-0" />
-          <span>3. Thiết bị đo &amp; Lịch tái khám</span>
+          <span>3. Sao lưu &amp; Thiết bị</span>
         </button>
       </div>
 

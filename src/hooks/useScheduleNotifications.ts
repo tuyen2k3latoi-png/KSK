@@ -8,11 +8,8 @@ import {
   WorkoutSchedule,
 } from '../types/health';
 import {
-  buildMedicationPushPayload,
-  buildWorkoutPushPayload,
   evaluateMedicationScheduleNotifications,
   evaluateWorkoutScheduleNotifications,
-  formatRecurringDaysLabel,
 } from '../utils/healthCalculations';
 import {
   readStorageJson,
@@ -20,9 +17,17 @@ import {
   STORAGE_KEYS,
 } from '../utils/storage';
 import {
-  dispatchBrowserLocalNotification,
-  playMedicationReminderChime,
-} from '../components/MedicationPushBanner';
+  buildScheduledAlarmDescriptors,
+  createMedicationNotificationItem,
+  createWorkoutNotificationItem,
+  dispatchPhoneAlarmNotification,
+  getMobileNotificationCapabilities,
+  requestPhoneNotificationPermission,
+  startAlarmRingtoneLoop,
+  stopAlarmRingtoneLoop,
+  syncAlarmsWithServiceWorker,
+  unlockAlarmAudio,
+} from '../services/mobileAlarmService';
 
 export function getCurrentTimeHHMM(): string {
   const now = new Date();
@@ -44,34 +49,29 @@ export function useScheduleNotifications({
   workoutSchedules,
   currentDayCode,
 }: UseScheduleNotificationsParams) {
-  const [notificationSettings, setNotificationSettings] =
+  const [notificationSettings, setNotificationSettingsState] =
     useState<MedicationNotificationSettings>(() => {
-      const browserPerm: MedicationNotificationSettings['browserPermission'] =
-        typeof window !== 'undefined' && 'Notification' in window
-          ? (Notification.permission as 'default' | 'granted' | 'denied')
-          : 'unsupported';
+      const caps = getMobileNotificationCapabilities();
       const saved = readStorageJson<MedicationNotificationSettings | null>(
         STORAGE_KEYS.NOTIF_SETTINGS,
         null
       );
-      if (saved) return { ...saved, browserPermission: browserPerm };
+      if (saved) return { ...saved, browserPermission: caps.permission };
       return {
         enabled: true,
         soundEnabled: true,
         leadMinutes: 5,
         snoozeMinutes: 10,
-        browserPermission: browserPerm,
+        browserPermission: caps.permission,
       };
     });
 
   const [notifiedSignaturesToday, setNotifiedSignaturesToday] = useState<string[]>(() =>
     readStorageJson<string[]>(STORAGE_KEYS.NOTIF_SIGS, [])
   );
-
   const [notificationHistory, setNotificationHistory] = useState<LocalPushNotificationItem[]>(() =>
     readStorageJson<LocalPushNotificationItem[]>(STORAGE_KEYS.NOTIF_HISTORY, [])
   );
-
   const [currentTimeStr, setCurrentTimeStr] = useState<string>(getCurrentTimeHHMM);
 
   useEffect(() => {
@@ -87,11 +87,29 @@ export function useScheduleNotifications({
   }, [notificationHistory]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setCurrentTimeStr(getCurrentTimeHHMM());
-    }, 15000);
+    const timer = window.setInterval(() => setCurrentTimeStr(getCurrentTimeHHMM()), 15000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    syncAlarmsWithServiceWorker(
+      buildScheduledAlarmDescriptors({
+        medications,
+        workoutSchedules,
+        currentDayCode,
+        settings: notificationSettings,
+        fullName: profile.fullName,
+      })
+    );
+  }, [
+    isAuthenticated,
+    medications,
+    workoutSchedules,
+    currentDayCode,
+    notificationSettings,
+    profile.fullName,
+  ]);
 
   const notifEval = evaluateMedicationScheduleNotifications({
     medications,
@@ -110,10 +128,40 @@ export function useScheduleNotifications({
 
   const activePushNotifications = notificationHistory.filter((n) => n.status === 'active');
 
-  const emitLocalPushItem = (item: LocalPushNotificationItem) => {
-    if (notificationSettings.soundEnabled) playMedicationReminderChime();
-    dispatchBrowserLocalNotification(item);
-    setNotificationHistory((prev) => [item, ...prev.filter((p) => p.status !== 'active')].slice(0, 20));
+  useEffect(() => {
+    if (activePushNotifications.length === 0) stopAlarmRingtoneLoop();
+  }, [activePushNotifications.length]);
+
+  const setNotificationSettings: React.Dispatch<
+    React.SetStateAction<MedicationNotificationSettings>
+  > = (valueOrUpdater) => {
+    setNotificationSettingsState((prev) => {
+      const next = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
+      if (next.enabled || next.soundEnabled) void unlockAlarmAudio();
+      if (!prev.enabled && next.enabled && next.browserPermission === 'default') {
+        requestPhoneNotificationPermission().then((perm) => {
+          setNotificationSettingsState((curr) => ({ ...curr, browserPermission: perm }));
+        });
+      }
+      return next;
+    });
+  };
+
+  const emitLocalPushItem = async (item: LocalPushNotificationItem) => {
+    await unlockAlarmAudio();
+    if (notificationSettings.browserPermission === 'default') {
+      const perm = await requestPhoneNotificationPermission();
+      setNotificationSettingsState((prev) => ({ ...prev, browserPermission: perm }));
+    }
+    startAlarmRingtoneLoop(notificationSettings.soundEnabled);
+    dispatchPhoneAlarmNotification(
+      item,
+      notificationSettings.snoozeMinutes,
+      notificationSettings.soundEnabled
+    );
+    setNotificationHistory((prev) =>
+      [item, ...prev.filter((p) => p.status !== 'active')].slice(0, 20)
+    );
   };
 
   useEffect(() => {
@@ -129,59 +177,33 @@ export function useScheduleNotifications({
     const newItems: LocalPushNotificationItem[] = [];
 
     for (const med of notifEval.dueNowMedications) {
-      const sig = med.snoozedUntil ? `${med.id}@snooze-${med.snoozedUntil}` : `${med.id}@${med.timeSlot}`;
-      newSigs.push(sig);
-      const payload = buildMedicationPushPayload(med, profile.fullName, currentTimeStr);
-      const item: LocalPushNotificationItem = {
-        id: `push_${med.id}_${Date.now()}`,
-        kind: 'medication',
-        medicationId: med.id,
-        medicationName: med.medicationName,
-        dosage: med.dosage,
-        timeSlot: med.timeSlot,
-        mealInstruction: med.mealInstruction,
-        purpose: med.purpose,
-        title: payload.title,
-        body: payload.body,
-        triggeredAt: currentTimeStr,
+      newSigs.push(med.snoozedUntil ? `${med.id}@snooze-${med.snoozedUntil}` : `${med.id}@${med.timeSlot}`);
+      const item = createMedicationNotificationItem({
+        med,
+        fullName: profile.fullName,
+        timeStr: currentTimeStr,
         isTest: false,
-        status: 'active',
-      };
+      });
       newItems.push(item);
-      dispatchBrowserLocalNotification(item);
+      dispatchPhoneAlarmNotification(item, notificationSettings.snoozeMinutes, notificationSettings.soundEnabled);
     }
 
     for (const sched of workoutNotifEval.dueNowWorkouts) {
-      const sig = sched.snoozedUntil
-        ? `workout-${sched.id}@snooze-${sched.snoozedUntil}`
-        : `workout-${sched.id}@${sched.timeSlot}`;
-      newSigs.push(sig);
-      const payload = buildWorkoutPushPayload(sched, profile.fullName, currentTimeStr);
-      const item: LocalPushNotificationItem = {
-        id: `push_workout_${sched.id}_${Date.now()}`,
-        kind: 'workout',
-        medicationId: sched.id,
-        workoutScheduleId: sched.id,
-        medicationName: sched.activityName,
-        dosage: `${sched.durationMinutes} phút`,
-        timeSlot: sched.timeSlot,
-        mealInstruction: `${sched.category} · ${formatRecurringDaysLabel(sched.daysOfWeek)}`,
-        purpose: `Cường độ ${sched.intensityLabel} · Tiêu hao ~${sched.targetCalories} kcal`,
-        activityCategory: sched.category,
-        durationMinutes: sched.durationMinutes,
-        targetCalories: sched.targetCalories,
-        title: payload.title,
-        body: payload.body,
-        triggeredAt: currentTimeStr,
+      newSigs.push(
+        sched.snoozedUntil ? `workout-${sched.id}@snooze-${sched.snoozedUntil}` : `workout-${sched.id}@${sched.timeSlot}`
+      );
+      const item = createWorkoutNotificationItem({
+        sched,
+        fullName: profile.fullName,
+        timeStr: currentTimeStr,
         isTest: false,
-        status: 'active',
-      };
+      });
       newItems.push(item);
-      dispatchBrowserLocalNotification(item);
+      dispatchPhoneAlarmNotification(item, notificationSettings.snoozeMinutes, notificationSettings.soundEnabled);
     }
 
     if (newItems.length > 0) {
-      if (notificationSettings.soundEnabled) playMedicationReminderChime();
+      startAlarmRingtoneLoop(notificationSettings.soundEnabled);
       setNotifiedSignaturesToday((prev) => Array.from(new Set([...prev, ...newSigs])));
       setNotificationHistory((prev) => [...newItems, ...prev].slice(0, 20));
     }
@@ -189,6 +211,7 @@ export function useScheduleNotifications({
     isAuthenticated,
     notificationSettings.enabled,
     notificationSettings.soundEnabled,
+    notificationSettings.snoozeMinutes,
     notifEval.dueNowMedications,
     workoutNotifEval.dueNowWorkouts,
     currentTimeStr,
@@ -196,41 +219,26 @@ export function useScheduleNotifications({
   ]);
 
   const handleRequestBrowserNotificationPermission = async () => {
-    try {
-      if (typeof window === 'undefined' || !('Notification' in window)) {
-        setNotificationSettings((prev) => ({ ...prev, browserPermission: 'unsupported' }));
-        return;
-      }
-      const perm = await Notification.requestPermission();
-      setNotificationSettings((prev) => ({
-        ...prev,
-        browserPermission: perm as 'default' | 'granted' | 'denied',
-      }));
-    } catch {
-      // Ignore permission errors
-    }
+    const perm = await requestPhoneNotificationPermission();
+    setNotificationSettingsState((prev) => ({
+      ...prev,
+      enabled: perm === 'granted' ? true : prev.enabled,
+      browserPermission: perm,
+    }));
   };
 
   const handleTriggerTestPush = (targetMed?: MedicationSchedule) => {
     const chosen =
       targetMed || notifEval.nextDose?.medication || medications.find((m) => !m.takenToday) || medications[0];
     if (!chosen) return;
-    const nowStr = getCurrentTimeHHMM();
-    const payload = buildMedicationPushPayload(chosen, profile.fullName, nowStr);
-    emitLocalPushItem({
-      id: `push_test_${chosen.id}_${Date.now()}`,
-      medicationId: chosen.id,
-      medicationName: chosen.medicationName,
-      dosage: chosen.dosage,
-      timeSlot: chosen.timeSlot,
-      mealInstruction: chosen.mealInstruction,
-      purpose: chosen.purpose,
-      title: payload.title,
-      body: payload.body,
-      triggeredAt: nowStr,
-      isTest: true,
-      status: 'active',
-    });
+    void emitLocalPushItem(
+      createMedicationNotificationItem({
+        med: chosen,
+        fullName: profile.fullName,
+        timeStr: getCurrentTimeHHMM(),
+        isTest: true,
+      })
+    );
   };
 
   const handleTriggerTestWorkoutPush = (targetSchedule?: WorkoutSchedule) => {
@@ -240,27 +248,14 @@ export function useScheduleNotifications({
       workoutSchedules.find((s) => !s.completedToday) ||
       workoutSchedules[0];
     if (!chosen) return;
-    const nowStr = getCurrentTimeHHMM();
-    const payload = buildWorkoutPushPayload(chosen, profile.fullName, nowStr);
-    emitLocalPushItem({
-      id: `push_test_workout_${chosen.id}_${Date.now()}`,
-      kind: 'workout',
-      medicationId: chosen.id,
-      workoutScheduleId: chosen.id,
-      medicationName: chosen.activityName,
-      dosage: `${chosen.durationMinutes} phút`,
-      timeSlot: chosen.timeSlot,
-      mealInstruction: `${chosen.category} · ${formatRecurringDaysLabel(chosen.daysOfWeek)}`,
-      purpose: `Cường độ ${chosen.intensityLabel} · Tiêu hao ~${chosen.targetCalories} kcal`,
-      activityCategory: chosen.category,
-      durationMinutes: chosen.durationMinutes,
-      targetCalories: chosen.targetCalories,
-      title: payload.title,
-      body: payload.body,
-      triggeredAt: nowStr,
-      isTest: true,
-      status: 'active',
-    });
+    void emitLocalPushItem(
+      createWorkoutNotificationItem({
+        sched: chosen,
+        fullName: profile.fullName,
+        timeStr: getCurrentTimeHHMM(),
+        isTest: true,
+      })
+    );
   };
 
   return {

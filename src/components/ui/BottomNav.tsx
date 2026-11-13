@@ -3,6 +3,7 @@ import {
   Activity,
   BookOpen,
   ClipboardList,
+  PhoneCall,
   Pill,
   Plus,
   Utensils,
@@ -115,8 +116,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({
  * Giúp bố cục máy tính gọn gàng, chữ lớn rõ ràng cho người 45–70 tuổi.
  */
 export const DesktopSidebarNav: React.FC<
-  BottomNavProps & { onOpenLogModal: () => void }
-> = ({ activeModule, onSelectModule, onOpenLogModal }) => {
+  BottomNavProps & {
+    onOpenLogModal: () => void;
+    onOpenEmergencyCall?: () => void;
+    isEmergencyAlarming?: boolean;
+  }
+> = ({
+  activeModule,
+  onSelectModule,
+  onOpenLogModal,
+  onOpenEmergencyCall,
+  isEmergencyAlarming = false,
+}) => {
   return (
     <aside
       aria-label="Điều hướng chính trên máy tính"
@@ -149,7 +160,7 @@ export const DesktopSidebarNav: React.FC<
           );
         })}
 
-        <div className="pt-2 mt-2 border-t border-stone-100">
+        <div className="pt-2 mt-2 border-t border-stone-100 space-y-2">
           <button
             type="button"
             onClick={onOpenLogModal}
@@ -158,6 +169,21 @@ export const DesktopSidebarNav: React.FC<
             <Plus className="w-5 h-5 stroke-[2.5] shrink-0" />
             <span>Ghi nhận chỉ số</span>
           </button>
+          {onOpenEmergencyCall && (
+            <button
+              type="button"
+              onClick={onOpenEmergencyCall}
+              data-testid="sidebar-emergency-call-btn"
+              className={`w-full min-h-[50px] px-4 py-2.5 rounded-2xl border text-base font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                isEmergencyAlarming
+                  ? 'bg-[#DC2626] hover:bg-red-700 border-red-700 text-white shadow-sm'
+                  : 'bg-red-50 hover:bg-red-100 border-red-200 text-[#DC2626]'
+              }`}
+            >
+              <PhoneCall className="w-5 h-5 shrink-0" />
+              <span>Gọi khẩn cấp</span>
+            </button>
+          )}
         </div>
       </div>
     </aside>

@@ -110,9 +110,9 @@ export const PatientIdentityBar: React.FC<PatientIdentityBarProps> = ({
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
           data-testid="toggle-profile-card-details-btn"
-          className="min-h-[48px] px-4 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-100 border border-stone-200/90 text-sm font-bold text-[#1F2937] inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+          className="min-h-[44px] px-4 py-2 rounded-2xl bg-[#FAF7F2] hover:bg-stone-100 border border-stone-200/90 text-sm font-bold text-[#1F2937] inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors"
         >
-          <span>{isExpanded ? 'Thu gọn hồ sơ' : 'Chi tiết hồ sơ'}</span>
+          <span>{isExpanded ? 'Thu gọn' : 'Chi tiết'}</span>
           <ChevronDown
             className={`w-4 h-4 text-stone-600 transition-transform ${
               isExpanded ? 'rotate-180' : ''
@@ -123,7 +123,7 @@ export const PatientIdentityBar: React.FC<PatientIdentityBarProps> = ({
 
       {/* Chip bệnh lý (tối đa 2 chip + "+N") */}
       <div className="pt-2.5 border-t border-stone-100 flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-stone-600">Bệnh lý theo dõi:</span>
+        <span className="text-sm font-semibold text-stone-600">Theo dõi:</span>
         {visibleConditions.map((cond) => (
           <span
             key={cond}
@@ -146,25 +146,21 @@ export const PatientIdentityBar: React.FC<PatientIdentityBarProps> = ({
 
       {/* Phần mở rộng chi tiết khi nhấn vào */}
       {isExpanded && (
-        <div className="pt-3 border-t border-stone-100 space-y-3 text-sm text-stone-700">
+        <div className="pt-3 border-t border-stone-100 space-y-2.5 text-sm text-stone-700">
           <div className="flex items-start gap-2">
             <Building2 className="w-4 h-4 text-[#0F766E] shrink-0 mt-0.5" />
             <span>
-              Nơi đăng ký khám chữa bệnh ban đầu:{' '}
-              <strong className="text-[#1F2937]">{profile.hospitalName}</strong>
+              Nơi khám: <strong className="text-[#1F2937]">{profile.hospitalName}</strong>
             </span>
           </div>
-          <p className="text-stone-600">
-            Mã thẻ BHYT do bạn tự lưu để tiện tra cứu khi đi khám — ứng dụng độc lập, không kết nối trực tiếp cơ quan BHXH hay VNeID.
-          </p>
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={onOpenBhytRecords}
-              className="min-h-[48px] px-4 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer transition-colors"
+              className="min-h-[44px] px-4 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
               <FileHeart className="w-4 h-4 shrink-0" />
-              <span>Mở Sổ BHYT &amp; Lịch sử khám ({bhytVisitsCount} lần)</span>
+              <span>Mở Sổ BHYT ({bhytVisitsCount} lần khám)</span>
             </button>
           </div>
         </div>

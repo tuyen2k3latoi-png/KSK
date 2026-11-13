@@ -43,23 +43,23 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
   const [appliedBanner, setAppliedBanner] = useState<string | null>(null);
   const [isAddingVisit, setIsAddingVisit] = useState(false);
   const [showFullCodes, setShowFullCodes] = useState(false);
+  const [expandedExplainId, setExpandedExplainId] = useState<string | null>(null);
 
   // New visit form state
   const [visitDate, setVisitDate] = useState('2026-11-11');
   const [hospitalName, setHospitalName] = useState(profile.hospitalName);
-  const [department, setDepartment] = useState('Khoa Khám bệnh Đa khoa BHYT');
   const [doctorName, setDoctorName] = useState(profile.primaryDoctor);
   const [icdCode, setIcdCode] = useState('I10');
   const [diagnosisSummary, setDiagnosisSummary] = useState(
-    'Tái khám Tăng huyết áp & Kiểm tra mỡ máu định kỳ'
+    'Tái khám Tăng huyết áp định kỳ'
   );
   const [doctorAdvice, setDoctorAdvice] = useState(
-    'Duy trì uống thuốc đúng giờ buổi sáng, giảm ăn mặn và tập đi bộ 30 phút/ngày.'
+    'Uống thuốc đúng giờ sáng, ăn nhạt và đi bộ 30 phút/ngày.'
   );
   const [sysInput, setSysInput] = useState('124');
   const [diaInput, setDiaInput] = useState('78');
   const [gluInput, setGluInput] = useState('95');
-  const [medNameInput, setMedNameInput] = useState('Amlodipine 5mg (Thuốc BHYT)');
+  const [medNameInput, setMedNameInput] = useState('Amlodipine 5mg');
 
   const card: BhytCardInfo = profile.bhytCard || INITIAL_BHYT_CARD;
   const isDemoProfile = Boolean(profile.isDemo ?? card.isDemo);
@@ -75,7 +75,7 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
   const handleApplyVisit = (visit: BhytVisitRecord) => {
     onApplyVisitToTracker(visit);
     setAppliedBanner(
-      `Đã chép chỉ số khám ngày ${formatDateDdMmYyyy(visit.visitDate)} (${visit.recordedVitals.systolic}/${visit.recordedVitals.diastolic} mmHg) và ${visit.prescribedMedications.length} thuốc từ "${visit.hospitalName}" vào Sổ theo dõi hằng ngày.`
+      `Đã chép chỉ số ngày ${formatDateDdMmYyyy(visit.visitDate)} (${visit.recordedVitals.systolic}/${visit.recordedVitals.diastolic} mmHg) và ${visit.prescribedMedications.length} thuốc vào Sổ hôm nay.`
     );
   };
 
@@ -86,14 +86,14 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
     onAddBhytVisit({
       visitDate,
       hospitalName: hospitalName.trim() || profile.hospitalName,
-      department: department.trim() || 'Khoa Nội Tổng hợp',
+      department: 'Khoa Khám bệnh Đa khoa',
       doctorName: doctorName.trim() || profile.primaryDoctor,
       icdCode: icdCode.trim() || 'I10',
       diagnosisSummary: diagnosisSummary.trim(),
       plainExplanation:
-        'Kết quả khám mới được bạn tự lưu vào Sổ Sức khỏe Cá nhân. Bạn nên trao đổi với bác sĩ nếu có bất kỳ thắc mắc nào về hướng dẫn dùng thuốc.',
+        'Kết quả khám được lưu cá nhân trên thiết bị. Hỏi lại bác sĩ nếu cần điều chỉnh liều thuốc.',
       doctorAdvice:
-        doctorAdvice.trim() || 'Uống thuốc đúng giờ và theo dõi huyết áp tại nhà.',
+        doctorAdvice.trim() || 'Uống thuốc đúng giờ và đo huyết áp tại nhà.',
       followUpDate: '2026-12-11',
       totalCostVnd: 750000,
       bhytPaidVnd: 600000,
@@ -110,7 +110,7 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
             {
               medicationName: medNameInput.trim(),
               dosage: '1 viên',
-              purpose: `Ghi chú đơn khám (${icdCode})`,
+              purpose: `Đơn khám (${icdCode})`,
               timeSlot: '07:00',
               mealInstruction: 'Sau ăn 30 phút',
               daysSupply: 30,
@@ -121,19 +121,19 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
 
     setIsAddingVisit(false);
     setAppliedBanner(
-      `Đã lưu đợt khám ngày ${formatDateDdMmYyyy(visitDate)} tại ${hospitalName} vào Sổ Sức khỏe Cá nhân của bạn.`
+      `Đã lưu đợt khám ngày ${formatDateDdMmYyyy(visitDate)} tại ${hospitalName}.`
     );
   };
 
   return (
     <section
-      aria-label="Sổ tự lưu trữ thẻ BHYT & Lịch sử khám cá nhân"
+      aria-label="Thẻ BHYT và Lịch sử khám"
       data-testid="vneid-bhyt-panel"
-      className="space-y-5"
+      className="space-y-4"
     >
-      {/* Thanh tiêu đề & nút Ghi thêm lần đi khám */}
+      {/* Thanh tiêu đề & nút Thêm lần khám */}
       <Card className="space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               {isDemoProfile ? (
@@ -141,7 +141,7 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
                   data-testid="bhyt-panel-demo-badge"
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-xl"
                 >
-                  HỒ SƠ DEMO (SỐ GIẢ MINH HỌA)
+                  HỒ SƠ DEMO
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B5F57] bg-[#0F766E]/10 border border-[#0F766E]/25 px-2.5 py-1 rounded-xl">
@@ -151,7 +151,7 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
               )}
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B5F57] bg-[#FAF7F2] border border-stone-200 px-2.5 py-1 rounded-xl tabular-nums">
                 <CreditCard className="w-4 h-4 text-[#0F766E]" />
-                <span>Mã thẻ BHYT: {displayedBhytCode}</span>
+                <span>{displayedBhytCode}</span>
               </span>
               <button
                 type="button"
@@ -173,31 +173,26 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
               </button>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] pt-0.5">
-              Sổ Tự Quản lý Thẻ Bảo hiểm Y tế (BHYT) &amp; Lịch sử Đi Khám
+              Thẻ BHYT &amp; Lịch sử khám
             </h2>
-            <p className="text-sm text-stone-600">
-              Tự nhập mã thẻ BHYT để lưu trữ cá nhân — không kết nối cơ quan BHXH/VNeID.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsAddingVisit(!isAddingVisit)}
-              data-testid="toggle-add-bhyt-visit-btn"
-              className="min-h-[48px] px-4 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold transition-colors inline-flex items-center gap-2 cursor-pointer shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{isAddingVisit ? 'Đóng mẫu ghi khám' : 'Ghi thêm lần đi khám BHYT'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddingVisit(!isAddingVisit)}
+            data-testid="toggle-add-bhyt-visit-btn"
+            className="min-h-[48px] px-4 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold transition-colors inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{isAddingVisit ? 'Đóng' : 'Thêm lần khám'}</span>
+          </button>
         </div>
 
         {appliedBanner && (
           <div
             role="status"
             data-testid="bhyt-sync-banner"
-            className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-emerald-950 flex items-center justify-between gap-3"
+            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-emerald-950 flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -208,417 +203,372 @@ export const VneidBhytPanel: React.FC<VneidBhytPanelProps> = ({
               onClick={() => setAppliedBanner(null)}
               className="text-xs font-bold text-emerald-900 underline shrink-0 cursor-pointer"
             >
-              Đã hiểu
+              Đóng
             </button>
           </div>
         )}
 
-        {/* Biểu mẫu ghi thêm đợt khám BHYT */}
+        {/* Biểu mẫu thêm lần khám */}
         {isAddingVisit && (
           <form
             onSubmit={handleAddVisitSubmit}
-            className="pt-4 border-t border-stone-200/80 space-y-3.5"
+            className="pt-4 border-t border-stone-200/80 space-y-3"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-[#1F2937]">
-                Ghi nhận đợt đi khám Bảo hiểm Y tế mới vào sổ cá nhân
-              </h3>
-              <span className="text-xs font-semibold text-stone-600 tabular-nums">
-                Thẻ BHYT: {displayedBhytCode}
-              </span>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Ngày đi khám
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Ngày khám</label>
                 <input
                   type="date"
                   value={visitDate}
                   onChange={(e) => setVisitDate(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Bệnh viện / Cơ sở khám
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Bệnh viện</label>
                 <input
                   type="text"
                   value={hospitalName}
                   onChange={(e) => setHospitalName(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Bác sĩ khám &amp; Chuyên khoa
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Bác sĩ</label>
                 <input
                   type="text"
                   value={doctorName}
                   onChange={(e) => setDoctorName(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Mã bệnh ICD
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Mã bệnh</label>
                 <input
                   type="text"
                   value={icdCode}
                   onChange={(e) => setIcdCode(e.target.value)}
-                  placeholder="VD: I10, E11"
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
+                  placeholder="I10"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
                 />
               </div>
               <div className="sm:col-span-3">
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Chẩn đoán ghi trên phiếu khám
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Chẩn đoán</label>
                 <input
                   type="text"
                   value={diagnosisSummary}
                   onChange={(e) => setDiagnosisSummary(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">Lời dặn bác sĩ</label>
+              <input
+                type="text"
+                value={doctorAdvice}
+                onChange={(e) => setDoctorAdvice(e.target.value)}
+                className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
+              />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Huyết áp Tâm thu (mmHg)
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">HA trên</label>
                 <input
                   type="number"
                   value={sysInput}
                   onChange={(e) => setSysInput(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Huyết áp Tâm trương
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">HA dưới</label>
                 <input
                   type="number"
                   value={diaInput}
                   onChange={(e) => setDiaInput(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Đường huyết (mg/dL)
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Đường huyết</label>
                 <input
                   type="number"
                   value={gluInput}
                   onChange={(e) => setGluInput(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl tabular-nums"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#1F2937] mb-1">
-                  Thuốc ghi trên đơn
-                </label>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Thuốc kê đơn</label>
                 <input
                   type="text"
                   value={medNameInput}
                   onChange={(e) => setMedNameInput(e.target.value)}
-                  className="w-full min-h-[48px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
+                  className="w-full min-h-[44px] px-3.5 py-2 text-sm bg-white border border-stone-300 rounded-2xl"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsAddingVisit(false)}
-                className="min-h-[48px] px-4 py-2 rounded-2xl border border-stone-300 text-sm font-bold text-[#1F2937] bg-white cursor-pointer"
+                className="min-h-[44px] px-4 py-2 rounded-2xl border border-stone-300 text-sm font-bold text-[#1F2937] bg-white cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="min-h-[48px] px-5 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold cursor-pointer"
+                className="min-h-[44px] px-5 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold cursor-pointer"
               >
-                Lưu vào Sổ Khám Cá nhân
+                Lưu lần khám
               </button>
             </div>
           </form>
         )}
       </Card>
 
-      {/* Bố cục 12 cột: Trái (5 cột) Thẻ BHYT & Bệnh lý đang theo dõi | Phải (7 cột) Lịch sử khám chữa bệnh */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <div className="lg:col-span-5 space-y-5">
-          {/* Thẻ BHYT tự lưu đồng bộ tông xanh ngọc ấm */}
-          <div className="rounded-[20px] bg-gradient-to-br from-[#0B5F57] via-[#0F766E] to-[#115E59] text-white p-5 shadow-[0_12px_32px_-8px_rgba(11,95,87,0.38)] space-y-4 border border-white/20">
-            <div className="flex items-start justify-between gap-2 border-b border-white/15 pb-3">
-              <div>
-                <p className="text-xs text-teal-100 font-semibold">
-                  Tự nhập mã thẻ BHYT để lưu trữ cá nhân
-                </p>
-                <h3 className="text-lg font-extrabold tracking-tight text-white mt-0.5">
-                  THÔNG TIN THẺ BHYT TỰ LƯU
-                </h3>
-              </div>
+      {/* Bố cục 2 cột: Trái Thẻ BHYT & Bệnh lý | Phải Lịch sử khám */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <div className="lg:col-span-5 space-y-4">
+          {/* Thẻ BHYT cá nhân */}
+          <div className="rounded-[20px] bg-gradient-to-br from-[#0B5F57] via-[#0F766E] to-[#115E59] text-white p-5 shadow-[0_12px_32px_-8px_rgba(11,95,87,0.38)] space-y-3.5 border border-white/20">
+            <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-3">
+              <h3 className="text-lg font-extrabold tracking-tight text-white">
+                THẺ BHYT CÁ NHÂN
+              </h3>
               <span className="px-2.5 py-1 rounded-xl bg-amber-300 text-stone-950 text-xs font-extrabold shrink-0">
-                {isDemoProfile ? 'HỒ SƠ DEMO' : 'Hồ sơ Cá nhân'}
+                {isDemoProfile ? 'DEMO' : 'Cá nhân'}
               </span>
             </div>
 
-            <div className="space-y-2.5 text-sm">
-              <div className="flex flex-wrap justify-between items-baseline gap-x-2 gap-y-1">
-                <span className="text-teal-100">Họ và tên chủ thẻ:</span>
-                <strong
-                  data-testid="bhyt-card-holder-name"
-                  className="text-base font-extrabold text-white break-words"
-                >
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-baseline gap-2">
+                <span className="text-teal-100">Họ tên:</span>
+                <strong data-testid="bhyt-card-holder-name" className="text-base font-extrabold text-white">
                   {profile.fullName}
                 </strong>
               </div>
-              <div className="flex flex-wrap justify-between items-center gap-x-2 gap-y-1">
-                <span className="text-teal-100">Mã số thẻ BHYT:</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong
-                    data-testid="bhyt-card-code"
-                    className="tabular-nums text-amber-200 font-extrabold text-base break-all"
-                  >
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-teal-100">Mã BHYT:</span>
+                <div className="flex items-center gap-2">
+                  <strong data-testid="bhyt-card-code" className="tabular-nums text-amber-200 font-extrabold text-base">
                     {displayedBhytCode}
                   </strong>
                   <button
                     type="button"
                     onClick={() => setShowFullCodes((prev) => !prev)}
-                    className="px-2.5 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold text-white cursor-pointer"
+                    className="px-2 py-0.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold text-white cursor-pointer"
                   >
                     {showFullCodes ? 'Ẩn' : 'Hiện'}
                   </button>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-between items-baseline gap-x-2 gap-y-1">
-                <span className="text-teal-100">Số CCCD tự ghi chú:</span>
-                <span
-                  data-testid="bhyt-card-cccd"
-                  className="tabular-nums text-white font-bold break-all"
-                >
+              <div className="flex justify-between items-baseline gap-2">
+                <span className="text-teal-100">Số CCCD:</span>
+                <span data-testid="bhyt-card-cccd" className="tabular-nums text-white font-bold">
                   {displayedCccdNumber}
                 </span>
               </div>
-              <div className="flex flex-wrap justify-between items-baseline gap-x-2 gap-y-1">
-                <span className="text-teal-100">Năm sinh / Nhóm máu:</span>
+              <div className="flex justify-between items-baseline gap-2">
+                <span className="text-teal-100">Sinh năm / Máu:</span>
                 <span className="tabular-nums text-white font-semibold">
-                  {profile.birthYear} ({2026 - profile.birthYear} tuổi) · Nhóm máu{' '}
-                  <strong>{profile.bloodType}</strong>
+                  {profile.birthYear} ({2026 - profile.birthYear}t) · Nhóm {profile.bloodType}
                 </span>
               </div>
-              <div className="pt-3 border-t border-white/15 space-y-1.5">
-                <div className="flex flex-wrap justify-between gap-x-2 gap-y-0.5">
-                  <span className="text-teal-100">Mức hưởng ghi chú:</span>
-                  <strong className="text-emerald-200 font-bold break-words">
-                    {card.coverageRate}
-                  </strong>
+              <div className="pt-2.5 border-t border-white/15 space-y-1.5">
+                <div className="flex justify-between items-baseline gap-3">
+                  <span className="text-teal-100 shrink-0 whitespace-nowrap">Mức hưởng:</span>
+                  <strong className="text-emerald-200 font-bold text-right">{card.coverageRate}</strong>
                 </div>
-                <div className="flex flex-wrap justify-between gap-x-2 gap-y-0.5">
-                  <span className="text-teal-100">Nơi ĐK KCB ban đầu:</span>
-                  <span className="text-white font-semibold break-words">
-                    {card.registeredHospital}
-                  </span>
+                <div className="flex justify-between items-baseline gap-3">
+                  <span className="text-teal-100 shrink-0 whitespace-nowrap">Nơi ĐK KCB:</span>
+                  <span className="text-white font-semibold text-right">{card.registeredHospital}</span>
                 </div>
-                <div className="flex flex-wrap justify-between gap-x-2 gap-y-0.5 text-xs text-teal-100 pt-1">
-                  <span className="break-words">{card.fiveYearContinuousDate}</span>
-                  <span>Không kết nối BHXH/VNeID</span>
-                </div>
+                <p className="text-xs text-teal-100/90 pt-1">
+                  {card.fiveYearContinuousDate} · Sổ lưu cá nhân (không thuộc BHXH/VNeID)
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Tình trạng bệnh đang theo dõi (dùng đường kẻ mảnh, không lồng nhiều hộp con) */}
-          <Card className="space-y-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-stone-200/80">
+          {/* Bệnh lý đang theo dõi */}
+          <Card className="space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-200/80">
               <h4 className="text-base font-bold text-[#1F2937] flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-[#DC2626] shrink-0" />
-                <span>Tình trạng bệnh đang theo dõi</span>
+                <span>Bệnh lý theo dõi ({profile.chronicConditions.length})</span>
               </h4>
-              <span className="text-xs font-bold text-[#0B5F57] bg-[#FAF7F2] px-2.5 py-1 rounded-xl border border-stone-200">
-                {profile.chronicConditions.length} bệnh lý
-              </span>
             </div>
 
             <div className="divide-y divide-stone-100">
               {profile.chronicConditions.map((cond) => (
                 <div
                   key={cond}
-                  className="py-2.5 text-sm text-[#1F2937] font-bold flex flex-wrap items-center justify-between gap-2"
+                  className="py-2 text-sm text-[#1F2937] font-bold flex items-center justify-between gap-2"
                 >
-                  <span className="break-words">{cond}</span>
-                  <Chip label="Đang theo dõi" variant="normal" className="text-xs px-2 py-0.5" />
+                  <span>{cond}</span>
+                  <Chip label="Theo dõi" variant="normal" className="text-xs px-2 py-0.5" />
                 </div>
               ))}
             </div>
 
-            <div className="pt-3 border-t border-stone-200/80 grid grid-cols-2 gap-3 text-sm">
+            <div className="pt-2.5 border-t border-stone-200/80 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-stone-600 block text-xs">
-                  Quỹ BHYT chi trả (ghi chú)
-                </span>
+                <span className="text-stone-600 block text-xs">BHYT đã chi trả</span>
                 <strong className="text-base font-extrabold text-[#0B5F57] tabular-nums">
-                  {summary.totalBhytCoveredVnd.toLocaleString('vi-VN')} đ ({summary.coverageSavedPercent}%)
+                  {summary.totalBhytCoveredVnd.toLocaleString('vi-VN')} đ
                 </strong>
               </div>
               <div>
-                <span className="text-stone-600 block text-xs">
-                  Lịch hẹn tái khám tới
-                </span>
+                <span className="text-stone-600 block text-xs">Tái khám tới</span>
                 <strong className="text-base font-extrabold text-[#1F2937] tabular-nums">
                   {summary.nextFollowUpDate
                     ? formatDateDdMmYyyy(summary.nextFollowUpDate)
-                    : 'Chưa có lịch'}
+                    : 'Chưa có'}
                 </strong>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Cột phải (7 cột): Lịch sử khám chữa bệnh tự lưu */}
-        <div className="lg:col-span-7 space-y-4">
+        {/* Cột phải: Lịch sử khám */}
+        <div className="lg:col-span-7 space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-lg font-bold text-[#1F2937] flex items-center gap-2">
               <Stethoscope className="w-5 h-5 text-[#0F766E] shrink-0" />
-              <span>
-                Lịch sử khám chữa bệnh tự lưu ({bhytVisits.length} đợt khám)
-              </span>
+              <span>Lịch sử khám ({bhytVisits.length} lần)</span>
             </h3>
-            <span className="text-xs font-semibold text-stone-600 hidden sm:inline">
-              Dữ liệu lưu cá nhân trên thiết bị
-            </span>
           </div>
 
           {bhytVisits.length === 0 ? (
             <EmptyState
-              title="Chưa có đợt khám BHYT nào được lưu"
-              description="Bấm nút “Ghi thêm lần đi khám BHYT” ở góc trên để tự lưu lại chẩn đoán và đơn thuốc sau mỗi lần đi khám."
+              title="Chưa có lần khám nào"
+              description="Bấm “Thêm lần khám” để lưu chẩn đoán và đơn thuốc."
             />
           ) : (
             <div className="space-y-4">
-              {bhytVisits.map((visit) => (
-                <Card
-                  key={visit.id}
-                  testId={`bhyt-visit-card-${visit.id}`}
-                  className="space-y-3.5"
-                >
-                  <div className="space-y-2 pb-3 border-b border-stone-200/80">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold tabular-nums bg-[#0F766E] text-white px-2.5 py-1 rounded-xl">
-                          Ngày khám: {formatDateDdMmYyyy(visit.visitDate)}
-                        </span>
-                        <span className="text-xs font-bold tabular-nums bg-amber-50 text-amber-950 border border-amber-300 px-2.5 py-1 rounded-xl">
-                          Mã bệnh: {visit.icdCode}
-                        </span>
+              {bhytVisits.map((visit) => {
+                const isExpanded = expandedExplainId === visit.id;
+                return (
+                  <Card
+                    key={visit.id}
+                    testId={`bhyt-visit-card-${visit.id}`}
+                    className="space-y-3"
+                  >
+                    <div className="space-y-1.5 pb-2.5 border-b border-stone-200/80">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold tabular-nums bg-[#0F766E] text-white px-2.5 py-1 rounded-xl">
+                            {formatDateDdMmYyyy(visit.visitDate)}
+                          </span>
+                          <span className="text-xs font-bold tabular-nums bg-amber-50 text-amber-950 border border-amber-300 px-2.5 py-1 rounded-xl">
+                            {visit.icdCode}
+                          </span>
+                        </div>
+                        <div className="font-bold text-sm text-[#0B5F57] inline-flex items-center gap-1.5">
+                          <Building2 className="w-4 h-4 text-[#0F766E] shrink-0" />
+                          <span>{visit.hospitalName}</span>
+                        </div>
                       </div>
-                      <div className="font-bold text-sm text-[#0B5F57] inline-flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-[#0F766E] shrink-0" />
-                        <span>{visit.hospitalName}</span>
+
+                      <h4 className="text-base sm:text-lg font-bold text-[#1F2937]">
+                        {visit.diagnosisSummary}
+                      </h4>
+                      <p className="text-xs text-stone-600">{visit.doctorName}</p>
+                    </div>
+
+                    <div className="space-y-1.5 text-sm">
+                      <p className="text-[#1F2937]">
+                        <strong className="text-[#0B5F57]">Lời dặn bác sĩ: </strong>
+                        {visit.doctorAdvice}
+                      </p>
+                      {visit.plainExplanation && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedExplainId(isExpanded ? null : visit.id)
+                            }
+                            className="text-xs font-bold text-[#0F766E] hover:underline cursor-pointer"
+                          >
+                            {isExpanded ? 'Ẩn giải thích thêm' : 'Xem giải thích dễ hiểu'}
+                          </button>
+                          {isExpanded && (
+                            <p className="text-sm text-stone-700 mt-1 leading-relaxed">
+                              {visit.plainExplanation}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2.5 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-xs font-bold text-stone-500 block mb-0.5">
+                          Chỉ số hôm khám:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-2 tabular-nums text-[#1F2937] font-bold">
+                          <span>
+                            HA {visit.recordedVitals.systolic}/{visit.recordedVitals.diastolic}
+                          </span>
+                          <span>·</span>
+                          <span>Đường {visit.recordedVitals.bloodGlucose}</span>
+                          <span>·</span>
+                          <span>{visit.recordedVitals.weightKg} kg</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-xs font-bold text-stone-500 block mb-0.5">
+                          Đơn thuốc ({visit.prescribedMedications.length}):
+                        </span>
+                        <ul className="space-y-0.5 text-[#1F2937]">
+                          {visit.prescribedMedications.map((m) => (
+                            <li key={m.medicationName} className="flex items-center gap-1.5 tabular-nums">
+                              <Pill className="w-3.5 h-3.5 text-[#0F766E] shrink-0" />
+                              <span className="font-semibold">{m.medicationName}</span>
+                              <span className="text-stone-500 text-xs">({formatTime24h(m.timeSlot)})</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
 
-                    <h4 className="text-base sm:text-lg font-bold text-[#1F2937] leading-snug">
-                      {visit.diagnosisSummary}
-                    </h4>
-
-                    <div className="text-xs text-stone-600 font-medium">
-                      {visit.department} · {visit.doctorName}
-                    </div>
-                  </div>
-
-                  {/* Giải thích dễ hiểu & Lời dặn bác sĩ */}
-                  <div className="space-y-1.5 text-sm leading-relaxed">
-                    <p className="text-[#1F2937]">
-                      <strong className="text-[#0B5F57]">Giải thích dễ hiểu: </strong>
-                      {visit.plainExplanation}
-                    </p>
-                    <p className="text-[#1F2937]">
-                      <strong className="text-amber-900">Lời dặn của bác sĩ: </strong>
-                      {visit.doctorAdvice}
-                    </p>
-                  </div>
-
-                  {/* Chỉ số đo tại bệnh viện & Đơn thuốc BHYT (chia bằng đường kẻ mảnh) */}
-                  <div className="pt-3 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-stone-600 block">
-                        Chỉ số đo ngày {formatDateDdMmYyyy(visit.visitDate)}:
-                      </span>
-                      <div className="flex flex-wrap items-center gap-2 tabular-nums text-[#1F2937] font-bold">
+                    <div className="pt-2.5 border-t border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-sm">
+                      <div className="text-stone-600 tabular-nums flex flex-wrap items-center gap-2">
                         <span>
-                          HA: {visit.recordedVitals.systolic}/{visit.recordedVitals.diastolic} mmHg
+                          Trả:{' '}
+                          <strong className="text-[#1F2937]">
+                            {visit.patientCoPayVnd.toLocaleString('vi-VN')} đ
+                          </strong>
                         </span>
                         <span>·</span>
-                        <span>Đường: {visit.recordedVitals.bloodGlucose} mg/dL</span>
-                        <span>·</span>
-                        <span>{visit.recordedVitals.weightKg} kg</span>
+                        <span className="inline-flex items-center gap-1 text-[#0B5F57] font-bold">
+                          <CalendarCheck className="w-4 h-4 text-[#0F766E]" />
+                          <span>Tái khám {formatDateDdMmYyyy(visit.followUpDate)}</span>
+                        </span>
                       </div>
-                    </div>
 
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-stone-600 block">
-                        Đơn thuốc ghi nhận ({visit.prescribedMedications.length} thuốc):
-                      </span>
-                      <ul className="space-y-1 text-[#1F2937]">
-                        {visit.prescribedMedications.map((m) => (
-                          <li key={m.medicationName} className="flex items-center gap-1.5 tabular-nums">
-                            <Pill className="w-3.5 h-3.5 text-[#0F766E] shrink-0" />
-                            <span className="font-semibold">{m.medicationName}</span>
-                            <span className="text-stone-600">({formatTime24h(m.timeSlot)})</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyVisit(visit)}
+                        data-testid={`apply-bhyt-visit-btn-${visit.id}`}
+                        className="min-h-[44px] px-4 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Chép vào Sổ hôm nay</span>
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Chi phí BHYT + Lịch tái khám + Nút chép vào sổ */}
-                  <div className="pt-3 border-t border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
-                    <div className="text-stone-600 tabular-nums flex flex-wrap items-center gap-2">
-                      <span>
-                        BHYT trả:{' '}
-                        <strong className="text-[#0B5F57]">
-                          {visit.bhytPaidVnd.toLocaleString('vi-VN')} đ
-                        </strong>
-                      </span>
-                      <span>·</span>
-                      <span>
-                        Cùng chi trả:{' '}
-                        <strong className="text-[#1F2937]">
-                          {visit.patientCoPayVnd.toLocaleString('vi-VN')} đ
-                        </strong>
-                      </span>
-                      <span>·</span>
-                      <span className="inline-flex items-center gap-1 text-[#0B5F57] font-bold">
-                        <CalendarCheck className="w-4 h-4 text-[#0F766E]" />
-                        <span>Tái khám: {formatDateDdMmYyyy(visit.followUpDate)}</span>
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleApplyVisit(visit)}
-                      data-testid={`apply-bhyt-visit-btn-${visit.id}`}
-                      className="min-h-[48px] px-4 py-2 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm font-bold transition-colors inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Cập nhật Đơn thuốc &amp; Chỉ số vào Sổ</span>
-                    </button>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

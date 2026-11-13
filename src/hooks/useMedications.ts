@@ -27,6 +27,11 @@ import {
   getCurrentTimeHHMM,
   useScheduleNotifications,
 } from './useScheduleNotifications';
+import {
+  cancelAlarmNotificationTag,
+  stopAlarmRingtoneLoop,
+  subscribeToSwAlarmActions,
+} from '../services/mobileAlarmService';
 
 interface UseMedicationsParams {
   isAuthenticated: boolean;
@@ -39,22 +44,14 @@ interface UseMedicationsParams {
   setWorkouts: React.Dispatch<React.SetStateAction<WorkoutEntry[]>>;
   onUpdateWorkoutSchedule: (
     id: string,
-    updates: Partial<
-      Pick<WorkoutSchedule, 'timeSlot' | 'daysOfWeek' | 'reminderEnabled' | 'snoozedUntil'>
-    >
+    updates: Partial<Pick<WorkoutSchedule, 'timeSlot' | 'daysOfWeek' | 'reminderEnabled' | 'snoozedUntil'>>
   ) => void;
+  onMedicationToggled?: (med: MedicationSchedule, takenCount: number, totalCount: number) => void;
 }
 
 export function useMedications({
-  isAuthenticated,
-  profile,
-  waterIntakeMl,
-  cloudUser,
-  currentDayCode,
-  workoutSchedules,
-  setWorkoutSchedules,
-  setWorkouts,
-  onUpdateWorkoutSchedule,
+  isAuthenticated, profile, waterIntakeMl, cloudUser, currentDayCode,
+  workoutSchedules, setWorkoutSchedules, setWorkouts, onUpdateWorkoutSchedule, onMedicationToggled,
 }: UseMedicationsParams) {
   const [medications, setMedications] = useState<MedicationSchedule[]>(() =>
     readStorageJson<MedicationSchedule[]>(STORAGE_KEYS.MEDS, INITIAL_MEDICATIONS)
@@ -66,47 +63,34 @@ export function useMedications({
 
   const medAdherence = calculateMedicationAdherence(medications);
   const {
-    notificationSettings,
-    setNotificationSettings,
-    notifiedSignaturesToday,
-    setNotifiedSignaturesToday,
-    notificationHistory,
-    setNotificationHistory,
-    notifEval,
-    workoutNotifEval,
-    activePushNotifications,
-    handleRequestBrowserNotificationPermission,
-    handleTriggerTestPush,
-    handleTriggerTestWorkoutPush,
-  } = useScheduleNotifications({
-    isAuthenticated,
-    profile,
-    medications,
-    workoutSchedules,
-    currentDayCode,
-  });
+    notificationSettings, setNotificationSettings, notifiedSignaturesToday, setNotifiedSignaturesToday,
+    notificationHistory, setNotificationHistory, notifEval, workoutNotifEval, activePushNotifications,
+    handleRequestBrowserNotificationPermission, handleTriggerTestPush, handleTriggerTestWorkoutPush,
+  } = useScheduleNotifications({ isAuthenticated, profile, medications, workoutSchedules, currentDayCode });
 
   const handleToggleMedication = (id: string) => {
     const timeStr = getCurrentTimeHHMM();
-    setMedications((prev) =>
-      prev.map((m) => {
-        if (m.id !== id) return m;
-        const nextTaken = !m.takenToday;
-        const updatedMed: MedicationSchedule = {
-          ...m,
-          takenToday: nextTaken,
-          takenAt: nextTaken ? timeStr : undefined,
-          snoozedUntil: nextTaken ? undefined : m.snoozedUntil,
-          remainingPills: nextTaken ? Math.max(0, m.remainingPills - 1) : m.remainingPills + 1,
-        };
-        if (cloudUser) {
-          syncUserProfileToFirestore(cloudUser.uid, profile, waterIntakeMl)
-            .then(() => saveMedicationToFirestore(cloudUser.uid, updatedMed))
-            .catch(() => {});
-        }
-        return updatedMed;
-      })
-    );
+    stopAlarmRingtoneLoop();
+    void cancelAlarmNotificationTag(`vitapulse-med-${id}`);
+    const target = medications.find((m) => m.id === id);
+    if (!target) return;
+    const nextTaken = !target.takenToday;
+    const updatedMed: MedicationSchedule = {
+      ...target,
+      takenToday: nextTaken,
+      takenAt: nextTaken ? timeStr : undefined,
+      snoozedUntil: nextTaken ? undefined : target.snoozedUntil,
+      remainingPills: nextTaken ? Math.max(0, target.remainingPills - 1) : target.remainingPills + 1,
+    };
+    const nextMeds = medications.map((m) => (m.id === id ? updatedMed : m));
+    setMedications(nextMeds);
+    if (cloudUser) {
+      syncUserProfileToFirestore(cloudUser.uid, profile, waterIntakeMl)
+        .then(() => saveMedicationToFirestore(cloudUser.uid, updatedMed))
+        .catch(() => {});
+    }
+    const takenCount = nextMeds.filter((m) => m.takenToday).length;
+    onMedicationToggled?.(updatedMed, takenCount, nextMeds.length);
     setNotificationHistory((prev) =>
       prev.map((item) =>
         item.medicationId === id && item.status === 'active' ? { ...item, status: 'confirmed' } : item
@@ -153,6 +137,8 @@ export function useMedications({
 
   const handleToggleWorkoutScheduleComplete = (id: string) => {
     const timeStr = getCurrentTimeHHMM();
+    stopAlarmRingtoneLoop();
+    void cancelAlarmNotificationTag(`vitapulse-workout-${id}`);
     const target = workoutSchedules.find((s) => s.id === id);
     if (!target) return;
     const nextCompleted = !target.completedToday;
@@ -192,6 +178,13 @@ export function useMedications({
   };
 
   const handleConfirmPushNotification = (item: LocalPushNotificationItem) => {
+    stopAlarmRingtoneLoop();
+    const tag =
+      item.kind === 'workout'
+        ? `vitapulse-workout-${item.workoutScheduleId || item.medicationId}`
+        : `vitapulse-med-${item.medicationId}`;
+    void cancelAlarmNotificationTag(tag);
+
     if (item.kind === 'workout') {
       const schedId = item.workoutScheduleId || item.medicationId;
       const target = workoutSchedules.find((s) => s.id === schedId);
@@ -206,6 +199,13 @@ export function useMedications({
   };
 
   const handleSnoozePushNotification = (item: LocalPushNotificationItem) => {
+    stopAlarmRingtoneLoop();
+    const tag =
+      item.kind === 'workout'
+        ? `vitapulse-workout-${item.workoutScheduleId || item.medicationId}`
+        : `vitapulse-med-${item.medicationId}`;
+    void cancelAlarmNotificationTag(tag);
+
     const snoozeUntilStr = addMinutesToTimeStr(
       getCurrentTimeHHMM(),
       notificationSettings.snoozeMinutes
@@ -223,10 +223,26 @@ export function useMedications({
   };
 
   const handleDismissPushNotification = (notificationId: string) => {
+    stopAlarmRingtoneLoop();
     setNotificationHistory((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, status: 'dismissed' } : n))
     );
   };
+
+  useEffect(() => {
+    return subscribeToSwAlarmActions((msg) => {
+      stopAlarmRingtoneLoop();
+      const targetItem = msg.payload as LocalPushNotificationItem;
+      if (!targetItem || !targetItem.medicationId) return;
+      if (msg.action === 'confirm') {
+        handleConfirmPushNotification(targetItem);
+      } else if (msg.action === 'snooze') {
+        handleSnoozePushNotification(targetItem);
+      } else if (msg.action === 'dismiss' && targetItem.id) {
+        handleDismissPushNotification(targetItem.id);
+      }
+    });
+  });
 
   return {
     medications,

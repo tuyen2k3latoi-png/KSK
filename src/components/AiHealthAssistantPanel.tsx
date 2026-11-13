@@ -75,6 +75,7 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
   );
   const [draftMeds, setDraftMeds] = useState<ExtractedMedicationDraft[]>([]);
   const [confirmedBanner, setConfirmedBanner] = useState<string | null>(null);
+  const [showAiAdvanced, setShowAiAdvanced] = useState(false);
 
   const anonymizedPreview = anonymizeWeeklyHealthData({
     vitals,
@@ -248,7 +249,7 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
     });
 
     setConfirmedBanner(
-      `Đã lưu chỉ số huyết áp ${draftSys}/${draftDia} mmHg (Nhịp tim ${draftHr} bpm) vào Sổ sau khi bạn xác nhận.`
+      `Đã lưu huyết áp ${draftSys}/${draftDia} mmHg (${draftHr} bpm) vào Sổ.`
     );
     setOcrResult(null);
   };
@@ -272,7 +273,7 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
     );
 
     setConfirmedBanner(
-      `Đã lưu ${draftMeds.length} thuốc từ ảnh đơn thuốc vào Tủ thuốc cá nhân sau khi bạn xác nhận.`
+      `Đã lưu ${draftMeds.length} thuốc từ đơn vào Tủ thuốc.`
     );
     setOcrResult(null);
   };
@@ -289,61 +290,50 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
 
   return (
     <section
-      aria-label="Trợ lý AI Tóm tắt Sức khỏe 7 ngày & Đọc ảnh Đơn thuốc / Máy đo Huyết áp"
+      aria-label="Trợ lý thông minh VitaPulse"
       data-testid="ai-health-assistant-panel"
-      className="bg-white border border-teal-200 rounded-xl p-4 sm:p-5 space-y-4 shadow-2xs"
+      className="bg-white rounded-[20px] border border-stone-200/85 shadow-[0_6px_24px_-6px_rgba(11,95,87,0.08)] p-4 sm:p-5 space-y-4 text-[#1F2937]"
     >
-      {/* Top Header & Guardrail Badge */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
-        <div className="space-y-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal-700 text-white text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>Trợ lý AI (Chạy trên Máy chủ Bảo mật)</span>
-            </span>
-            <span
-              data-testid="ai-anonymized-badge"
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold break-words"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-              <span>Đã ẩn danh: Tự động bỏ Họ tên &amp; Mã BHYT trước khi gửi</span>
-            </span>
+      {/* Tiêu đề gọn + 2 nút chuyển tính năng đặc biệt */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#0F766E] shrink-0" />
+            <h2 className="text-lg sm:text-xl font-bold text-[#1F2937]">
+              Trợ lý thông minh
+            </h2>
           </div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 break-words pt-0.5">
-            Tóm tắt Sức khỏe 7 Ngày (5 dòng) &amp; Đọc Ảnh Đơn thuốc / Máy đo Huyết áp
-          </h2>
-          <p className="text-sm text-slate-700 break-words">
-            Không chẩn đoán bệnh, không kê đơn, không tự ý đổi liều thuốc. Mọi thông tin trích xuất từ ảnh đều cần bạn <strong>XÁC NHẬN</strong> trước khi lưu.
+          <p className="text-sm text-stone-600">
+            Tóm tắt tuần dễ hiểu &amp; Chụp ảnh máy đo, đơn thuốc (tự động che tên).
           </p>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+        <div className="grid grid-cols-2 gap-1.5 bg-[#FAF7F2] p-1.5 rounded-2xl border border-stone-200/80 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('weekly_summary')}
             data-testid="ai-tab-weekly-summary-btn"
-            className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`min-h-[42px] px-3 py-1.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'weekly_summary'
-                ? 'bg-white text-teal-900 shadow-2xs'
-                : 'text-slate-700 hover:text-slate-900'
+                ? 'bg-[#0F766E] text-white shadow-2xs'
+                : 'text-[#1F2937] hover:bg-white'
             }`}
           >
-            <FileText className="w-4 h-4 text-teal-700 shrink-0" />
-            <span>1. Tóm tắt Tuần (5 dòng)</span>
+            <FileText className="w-4 h-4 shrink-0" />
+            <span>Tóm tắt tuần</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('image_ocr')}
             data-testid="ai-tab-image-ocr-btn"
-            className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`min-h-[42px] px-3 py-1.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'image_ocr'
-                ? 'bg-white text-teal-900 shadow-2xs'
-                : 'text-slate-700 hover:text-slate-900'
+                ? 'bg-[#0F766E] text-white shadow-2xs'
+                : 'text-[#1F2937] hover:bg-white'
             }`}
           >
-            <Camera className="w-4 h-4 text-indigo-700 shrink-0" />
-            <span>2. Đọc Đơn thuốc / Ảnh Máy đo</span>
+            <Camera className="w-4 h-4 shrink-0" />
+            <span>Chụp ảnh đọc số</span>
           </button>
         </div>
       </div>
@@ -352,7 +342,7 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
         <div
           role="status"
           data-testid="ai-confirmed-save-banner"
-          className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-sm font-semibold text-emerald-950 flex items-center justify-between gap-2"
+          className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-sm font-semibold text-emerald-950 flex items-center justify-between gap-2"
         >
           <div className="flex items-center gap-2 min-w-0">
             <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
@@ -368,135 +358,115 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
         </div>
       )}
 
-      {/* TAB 1: ANONYMIZED 7-DAY WEEKLY SUMMARY (5 LINES) */}
+      {/* TAB 1: TÓM TẮT TUẦN (5 DÒNG) */}
       {activeTab === 'weekly_summary' ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            <div className="lg:col-span-7 space-y-3">
-              <div>
-                <label
-                  htmlFor="ai-symptom-note"
-                  className="block text-sm font-semibold text-slate-800 mb-1"
-                >
-                  Ghi chú triệu chứng tuần này (không bắt buộc):
-                </label>
-                <input
-                  id="ai-symptom-note"
-                  type="text"
-                  value={symptomNote}
-                  onChange={(e) => setSymptomNote(e.target.value)}
-                  placeholder="VD: Ngủ ngon, đi bộ đều 30 phút mỗi sáng (Nếu nhập 'đau ngực' hoặc 'khó thở' sẽ kích hoạt cảnh báo 115)"
-                  data-testid="ai-weekly-symptom-input"
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 focus:bg-white border border-slate-300 focus:border-teal-600 rounded-xl text-slate-900 outline-none"
-                />
-              </div>
+        <div className="space-y-3.5">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <input
+              id="ai-symptom-note"
+              type="text"
+              value={symptomNote}
+              onChange={(e) => setSymptomNote(e.target.value)}
+              placeholder="Ghi thêm cảm nhận tuần này (VD: Ngủ ngon, hơi mỏi gối)..."
+              data-testid="ai-weekly-symptom-input"
+              aria-label="Ghi chú triệu chứng tuần này"
+              className="flex-1 min-h-[48px] px-4 py-2 text-sm bg-[#FAF7F2] focus:bg-white border border-stone-300 focus:border-[#0F766E] rounded-2xl text-[#1F2937] outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => handleGenerateWeeklySummary()}
+              disabled={isLoadingSummary}
+              data-testid="ai-generate-weekly-summary-btn"
+              className="min-h-[48px] px-5 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm sm:text-base font-bold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0 shadow-xs"
+            >
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>
+                {isLoadingSummary ? 'Đang tóm tắt...' : 'Tóm tắt 7 ngày (5 dòng)'}
+              </span>
+            </button>
+          </div>
 
+          <div className="flex items-center justify-between gap-2">
+            <span
+              data-testid="ai-anonymized-badge"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0B5F57]"
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>Đã ẩn Họ tên &amp; Mã BHYT trước khi tóm tắt</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowAiAdvanced((prev) => !prev)}
+              className="text-xs font-bold text-stone-600 hover:text-[#0B5F57] underline cursor-pointer"
+            >
+              {showAiAdvanced ? 'Ẩn tùy chọn thử' : 'Tùy chọn thử & Bảo mật'}
+            </button>
+          </div>
+
+          {showAiAdvanced && (
+            <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-stone-200 space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleGenerateWeeklySummary()}
-                  disabled={isLoadingSummary}
-                  data-testid="ai-generate-weekly-summary-btn"
-                  className="min-h-[42px] px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold inline-flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  <span>
-                    {isLoadingSummary
-                      ? 'Đang tổng hợp 5 dòng...'
-                      : 'Tạo Bản Tóm tắt Tuần (5 dòng dễ hiểu)'}
-                  </span>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => {
                     setSymptomNote('Sáng nay tôi bị đau ngực và khó thở');
-                    handleGenerateWeeklySummary(
-                      'Sáng nay tôi bị đau ngực và khó thở'
-                    );
+                    handleGenerateWeeklySummary('Sáng nay tôi bị đau ngực và khó thở');
                   }}
                   data-testid="ai-test-emergency-guardrail-btn"
-                  className="min-h-[42px] px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-900 text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="min-h-[40px] px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-[#DC2626] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <ShieldAlert className="w-4 h-4 text-rose-700 shrink-0" />
-                  <span>Thử Guardrail Nguy cấp (Cảnh báo 115)</span>
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>Thử cảnh báo khẩn 115</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setShowAnonymizedJson((prev) => !prev)}
                   data-testid="toggle-view-anonymized-payload-btn"
-                  className="min-h-[40px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                  className="min-h-[40px] px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-[#1F2937] text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Eye className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-                  <span>
-                    {showAnonymizedJson
-                      ? 'Ẩn dữ liệu ẩn danh'
-                      : 'Xem dữ liệu ẩn danh gửi đi'}
-                  </span>
+                  <Eye className="w-3.5 h-3.5 text-[#0F766E] shrink-0" />
+                  <span>{showAnonymizedJson ? 'Ẩn dữ liệu ẩn danh' : 'Xem dữ liệu ẩn danh'}</span>
                 </button>
               </div>
-            </div>
-
-            {/* Privacy & Guardrail Info Card */}
-            <div className="lg:col-span-5 p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs sm:text-sm text-slate-700">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0" />
-                <span>Cam kết Quyền riêng tư &amp; An toàn Y khoa:</span>
-              </div>
-              <p className="break-words">
-                • <strong>Ẩn danh tuyệt đối:</strong> Họ tên (<em>{profile.fullName}</em>) và mã thẻ BHYT được cắt bỏ hoàn toàn trước khi gửi lên máy chủ.
-              </p>
-              <p className="break-words">
-                • <strong>Guardrail Cấp cứu 115:</strong> Nếu có từ khóa nguy cấp (<em>đau ngực, khó thở</em>) hoặc huyết áp &ge; 180/120 mmHg, hệ thống dừng tóm tắt và chỉ hiển thị hướng dẫn gọi <strong>115</strong>.
-              </p>
-            </div>
-          </div>
-
-          {showAnonymizedJson && (
-            <div
-              data-testid="ai-anonymized-json-preview"
-              className="p-3.5 rounded-xl bg-slate-900 text-slate-100 text-xs font-mono-tabular overflow-x-auto space-y-1.5"
-            >
-              <p className="text-teal-300 font-sans font-bold">
-                Dữ liệu 7 ngày đã ẩn danh (Không có tên &ldquo;{profile.fullName}&rdquo;, không có mã BHYT):
-              </p>
-              <pre className="whitespace-pre-wrap break-words">
-                {JSON.stringify(anonymizedPreview, null, 2)}
-              </pre>
+              {showAnonymizedJson && (
+                <div
+                  data-testid="ai-anonymized-json-preview"
+                  className="p-3 rounded-xl bg-stone-900 text-stone-100 text-xs overflow-x-auto space-y-1"
+                >
+                  <p className="text-teal-300 font-bold">
+                    Không có tên &ldquo;{profile.fullName}&rdquo; hay mã BHYT:
+                  </p>
+                  <pre className="whitespace-pre-wrap break-words">
+                    {JSON.stringify(anonymizedPreview, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
 
           {summaryError && (
             <div
               role="alert"
-              className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-sm font-medium text-red-800 break-words"
+              className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-sm font-medium text-[#DC2626] break-words"
             >
               {summaryError}
             </div>
           )}
 
-          {/* Weekly Summary Output OR Mandatory 115 Emergency Alert */}
           {summaryResult && (
             <div className="pt-1">
               {summaryResult.isEmergency ? (
                 <div
                   role="alert"
                   data-testid="ai-emergency-115-banner"
-                  className="p-4 sm:p-5 rounded-xl bg-rose-600 text-white space-y-2.5 shadow-sm"
+                  className="p-4 sm:p-5 rounded-2xl bg-[#DC2626] text-white space-y-2 shadow-sm"
                 >
                   <div className="flex items-center gap-2 text-base sm:text-lg font-bold">
                     <PhoneCall className="w-5 h-5 shrink-0" />
                     <span className="break-words">
-                      {summaryResult.emergencyTitle ||
-                        'CẢNH BÁO KHẨN CẤP — GỌI CẤP CỨU 115 NGAY'}
+                      {summaryResult.emergencyTitle || 'CẢNH BÁO KHẨN CẤP — GỌI 115 NGAY'}
                     </span>
                   </div>
-                  {summaryResult.triggerReason && (
-                    <p className="text-sm font-semibold text-rose-100 break-words">
-                      Lý do kích hoạt Guardrail: {summaryResult.triggerReason}
-                    </p>
-                  )}
                   <p className="text-sm sm:text-base leading-relaxed font-medium break-words">
                     {summaryResult.emergencyCall115Message}
                   </p>
@@ -504,28 +474,23 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
               ) : (
                 <div
                   data-testid="ai-weekly-summary-card"
-                  className="p-4 sm:p-5 rounded-xl bg-teal-50/70 border border-teal-200 space-y-3.5"
+                  className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#0F766E]/25 space-y-3"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-teal-200/80">
-                    <h3 className="text-base font-bold text-teal-950">
-                      Bản Tóm tắt Sức khỏe 7 Ngày (5 Dòng Dễ Hiểu)
-                    </h3>
-                    <span className="text-xs font-bold text-teal-900 bg-white border border-teal-200 px-2.5 py-0.5 rounded">
-                      5 dòng · Không phải chẩn đoán y khoa
-                    </span>
-                  </div>
+                  <h3 className="text-base font-bold text-[#0B5F57]">
+                    Tóm tắt 7 ngày vừa qua
+                  </h3>
 
                   <ol
                     data-testid="ai-weekly-summary-lines"
-                    className="space-y-2 text-sm text-slate-900"
+                    className="space-y-2 text-sm text-[#1F2937]"
                   >
                     {summaryResult.lines.map((line, idx) => (
                       <li
                         key={idx}
                         data-testid={`ai-summary-line-${idx}`}
-                        className="p-2.5 rounded-lg bg-white border border-teal-200/80 flex items-start gap-2.5 leading-relaxed"
+                        className="p-2.5 rounded-xl bg-white border border-stone-200/80 flex items-start gap-2.5 leading-relaxed"
                       >
-                        <span className="w-6 h-6 rounded-full bg-teal-700 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="w-6 h-6 rounded-full bg-[#0F766E] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                           {idx + 1}
                         </span>
                         <span className="break-words font-medium">{line}</span>
@@ -533,29 +498,20 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
                     ))}
                   </ol>
 
-                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-950 space-y-1">
-                    <p className="font-bold">
-                      Gợi ý câu hỏi để bạn trao đổi với bác sĩ khi tái khám:
-                    </p>
-                    <p
-                      data-testid="ai-doctor-question-suggestion"
-                      className="italic break-words"
-                    >
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-950">
+                    <strong>Gợi ý hỏi bác sĩ: </strong>
+                    <span data-testid="ai-doctor-question-suggestion" className="italic">
                       &ldquo;{summaryResult.doctorQuestionSuggestion}&rdquo;
-                    </p>
+                    </span>
                   </div>
-
-                  <p className="text-xs text-slate-600 break-words">
-                    {summaryResult.disclaimer}
-                  </p>
                 </div>
               )}
             </div>
           )}
         </div>
       ) : (
-        /* TAB 2: READ PRESCRIPTION / BP MONITOR PHOTO WITH MANDATORY CONFIRMATION BEFORE SAVING */
-        <div className="space-y-4">
+        /* TAB 2: CHỤP ẢNH MÁY ĐO / ĐƠN THUỐC */
+        <div className="space-y-3.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -565,14 +521,14 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
                   setOcrResult(null);
                 }}
                 data-testid="ai-mode-bp-monitor-btn"
-                className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer border ${
+                className={`min-h-[44px] px-4 py-2 rounded-2xl text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer border ${
                   ocrMode === 'bp_monitor'
-                    ? 'bg-teal-700 text-white border-teal-700'
-                    : 'bg-slate-50 text-slate-800 border-slate-300 hover:bg-slate-100'
+                    ? 'bg-[#0F766E] text-white border-[#0F766E]'
+                    : 'bg-[#FAF7F2] text-[#1F2937] border-stone-200 hover:bg-stone-100'
                 }`}
               >
                 <HeartPulse className="w-4 h-4 shrink-0" />
-                <span>Chế độ 1: Ảnh Máy đo Huyết áp</span>
+                <span>Máy đo huyết áp</span>
               </button>
 
               <button
@@ -582,66 +538,73 @@ export const AiHealthAssistantPanel: React.FC<AiHealthAssistantPanelProps> = ({
                   setOcrResult(null);
                 }}
                 data-testid="ai-mode-prescription-btn"
-                className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer border ${
+                className={`min-h-[44px] px-4 py-2 rounded-2xl text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer border ${
                   ocrMode === 'prescription'
-                    ? 'bg-indigo-700 text-white border-indigo-700'
-                    : 'bg-slate-50 text-slate-800 border-slate-300 hover:bg-slate-100'
+                    ? 'bg-[#0F766E] text-white border-[#0F766E]'
+                    : 'bg-[#FAF7F2] text-[#1F2937] border-stone-200 hover:bg-stone-100'
                 }`}
               >
                 <Pill className="w-4 h-4 shrink-0" />
-                <span>Chế độ 2: Ảnh Đơn thuốc Bác sĩ</span>
+                <span>Đơn thuốc bác sĩ</span>
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="min-h-[42px] px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer shadow-2xs">
-                <Upload className="w-4 h-4 shrink-0" />
-                <span>Chụp / Chọn Ảnh từ Điện thoại</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileUpload}
-                  data-testid="ai-image-file-input"
-                  className="hidden"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleTriggerSampleScan('bp_monitor', 'bp_normal')
-                }
-                data-testid="ai-scan-sample-bp-btn"
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer"
-              >
-                Thử Ảnh Máy đo Mẫu
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleTriggerSampleScan('prescription', 'prescription_sample')
-                }
-                data-testid="ai-scan-sample-rx-btn"
-                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer"
-              >
-                Thử Ảnh Đơn thuốc Mẫu
-              </button>
-            </div>
+            <label className="min-h-[48px] px-5 py-2.5 rounded-2xl bg-[#0F766E] hover:bg-[#0B5F57] text-white text-sm sm:text-base font-bold inline-flex items-center gap-2 cursor-pointer shadow-xs">
+              <Upload className="w-4 h-4 shrink-0" />
+              <span>Chụp / Chọn ảnh</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileUpload}
+                data-testid="ai-image-file-input"
+                className="hidden"
+              />
+            </label>
           </div>
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowAiAdvanced((prev) => !prev)}
+              className="text-xs font-bold text-stone-600 hover:text-[#0B5F57] underline cursor-pointer"
+            >
+              {showAiAdvanced ? 'Ẩn ảnh mẫu' : 'Dùng thử bằng ảnh mẫu'}
+            </button>
+          </div>
+
+          {showAiAdvanced && (
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-[#FAF7F2] border border-stone-200">
+              <button
+                type="button"
+                onClick={() => handleTriggerSampleScan('bp_monitor', 'bp_normal')}
+                data-testid="ai-scan-sample-bp-btn"
+                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-[#1F2937] text-xs font-bold cursor-pointer"
+              >
+                Thử ảnh Máy đo huyết áp
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTriggerSampleScan('prescription', 'prescription_sample')}
+                data-testid="ai-scan-sample-rx-btn"
+                className="min-h-[40px] px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-[#1F2937] text-xs font-bold cursor-pointer"
+              >
+                Thử ảnh Đơn thuốc
+              </button>
+            </div>
+          )}
+
           {selectedImageName && (
-            <p className="text-xs text-slate-600 break-words">
-              Ảnh đang xử lý: <strong>{selectedImageName}</strong>{' '}
-              {isLoadingOcr ? '— Đang trích xuất thông tin trên máy chủ...' : ''}
+            <p className="text-sm text-stone-600 break-words">
+              Ảnh: <strong>{selectedImageName}</strong>{' '}
+              {isLoadingOcr ? '— Đang đọc số...' : ''}
             </p>
           )}
 
           {ocrError && (
             <div
               role="alert"
-              className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-sm font-medium text-red-800 break-words"
+              className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-sm font-medium text-[#DC2626] break-words"
             >
               {ocrError}
             </div>

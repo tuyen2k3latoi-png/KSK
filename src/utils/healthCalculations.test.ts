@@ -906,6 +906,20 @@ test('Stage 4: technical cleanup verifies vitapulse package name, assetlinks pla
     'src/utils/formatters.ts',
     'src/components/ui/Primitives.tsx',
     'src/components/ui/BottomNav.tsx',
+    'src/components/EmergencyCallModal.tsx',
+    'src/components/EmergencyContactParts.tsx',
+    'src/services/emergencyService.ts',
+    'src/components/layout/ProfileSettingsMenu.tsx',
+    'src/components/dashboard/MinimalDashboardView.tsx',
+    'src/services/minimalModeService.ts',
+    'src/services/speechFeedbackService.ts',
+    'src/hooks/useVoiceFeedback.ts',
+    'src/components/ui/VoiceFeedbackToast.tsx',
+    'src/services/nutritionAdviceService.ts',
+    'src/data/nutritionGuidancePresets.ts',
+    'src/components/dashboard/NutritionGuidanceCard.tsx',
+    'src/services/calendarAlarmExportService.ts',
+    'src/services/mobileDeviceSupportService.ts',
   ];
 
   for (const relPath of modularFilesToVerify) {
@@ -1017,3 +1031,425 @@ test('Step 1 & 2 Redesign: formatDateDdMmYyyy, formatShortDateDdMm, humanizeDevi
   const trend = computeVitalTrend(INITIAL_VITAL_RECORDS, (v) => v.systolic, 2);
   assert.ok(['↑', '↓', '→'].includes(trend.arrow));
 });
+
+test('Phone Alarm: buildAlarmNotificationPayload & buildScheduledAlarmDescriptors produce OS notification actions and timestamps', async () => {
+  const { buildAlarmNotificationPayload, buildScheduledAlarmDescriptors } = await import(
+    '../services/mobileAlarmService'
+  );
+
+  const built = buildAlarmNotificationPayload(
+    {
+      id: 'push_med_1',
+      kind: 'medication',
+      medicationId: 'med-1',
+      medicationName: 'Amlodipine 5mg',
+      dosage: '1 viên',
+      timeSlot: '07:00',
+      mealInstruction: 'Sau ăn 30 phút',
+      purpose: 'Huyết áp',
+      title: 'Đến giờ uống Amlodipine 5mg',
+      body: 'Chú Quân ơi, uống 1 viên lúc 07:00',
+      triggeredAt: '07:00',
+      status: 'active',
+    },
+    10,
+    true
+  );
+
+  assert.equal(built.tag, 'vitapulse-med-med-1');
+  assert.equal(built.options.requireInteraction, true);
+  assert.equal(built.options.renotify, true);
+  assert.equal(built.options.silent, false);
+  assert.equal(built.options.actions.length, 2);
+  assert.equal(built.options.actions[0].action, 'confirm');
+  assert.equal(built.options.actions[1].action, 'snooze');
+  assert.ok(built.options.actions[1].title.includes('10 phút'));
+
+  const now = new Date(2026, 10, 11, 6, 45, 0, 0); // 11/11/2026 06:45 (T4)
+  const alarms = buildScheduledAlarmDescriptors({
+    medications: [
+      {
+        id: 'med-morning',
+        medicationName: 'Amlodipine 5mg',
+        dosage: '1 viên',
+        purpose: 'Huyết áp',
+        frequency: 'Hàng ngày',
+        timeSlot: '07:00',
+        mealInstruction: 'Sau ăn 30 phút',
+        takenToday: false,
+        remainingPills: 20,
+        totalPills: 30,
+        reminderEnabled: true,
+      },
+      {
+        id: 'med-done',
+        medicationName: 'Đã uống rồi',
+        dosage: '1 viên',
+        purpose: 'Test',
+        frequency: 'Hàng ngày',
+        timeSlot: '06:00',
+        mealInstruction: 'Sau ăn 30 phút',
+        takenToday: true,
+        remainingPills: 10,
+        totalPills: 30,
+        reminderEnabled: true,
+      },
+    ],
+    workoutSchedules: [
+      {
+        id: 'ws-1',
+        activityName: 'Đi bộ sáng',
+        category: 'Đi bộ',
+        timeSlot: '07:30',
+        durationMinutes: 30,
+        targetCalories: 150,
+        daysOfWeek: ['T4'],
+        intensityLabel: 'Nhẹ nhàng',
+        completedToday: false,
+        reminderEnabled: true,
+      },
+    ],
+    currentDayCode: 'T4',
+    settings: {
+      enabled: true,
+      soundEnabled: true,
+      leadMinutes: 5,
+      snoozeMinutes: 10,
+      browserPermission: 'granted',
+    },
+    fullName: 'Chú Quân',
+    now,
+  });
+
+  assert.equal(alarms.length, 2);
+  assert.equal(alarms[0].kind, 'medication');
+  assert.equal(alarms[0].triggerTimestampMs, new Date(2026, 10, 11, 6, 55, 0, 0).getTime());
+  assert.equal(alarms[1].kind, 'workout');
+  assert.equal(alarms[1].triggerTimestampMs, new Date(2026, 10, 11, 7, 25, 0, 0).getTime());
+});
+
+test('Emergency Call: sanitizeTelHref, validateEmergencyContactsForm, and evaluateEmergencyVitalAlert', async () => {
+  const {
+    sanitizeTelHref,
+    validateEmergencyContactsForm,
+    evaluateEmergencyVitalAlert,
+  } = await import('../services/emergencyService');
+
+  assert.equal(sanitizeTelHref('0912 345 678'), 'tel:0912345678');
+  assert.equal(sanitizeTelHref('+84 912-345-678'), 'tel:+84912345678');
+  assert.equal(sanitizeTelHref('115'), 'tel:115');
+  assert.equal(sanitizeTelHref('Chưa cập nhật'), null);
+  assert.equal(sanitizeTelHref('123'), null);
+
+  const badForm = validateEmergencyContactsForm({
+    emergencyContactName: 'Con gái Lan',
+    emergencyContactPhone: '123',
+    primaryDoctor: 'BS. Hùng',
+    primaryDoctorPhone: '',
+  });
+  assert.equal(badForm.valid, false);
+  assert.ok(badForm.error?.includes('người thân'));
+
+  const emptyBoth = validateEmergencyContactsForm({
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    primaryDoctor: '',
+    primaryDoctorPhone: '',
+  });
+  assert.equal(emptyBoth.valid, false);
+
+  const validForm = validateEmergencyContactsForm({
+    emergencyContactName: '  Con gái Lan ',
+    emergencyContactPhone: ' 0988 112 233 ',
+    primaryDoctor: ' BS. Trần Hùng ',
+    primaryDoctorPhone: ' 0909 555 777 ',
+  });
+  assert.equal(validForm.valid, true);
+  assert.equal(validForm.normalized.emergencyContactName, 'Con gái Lan');
+  assert.equal(validForm.normalized.emergencyContactPhone, '0988 112 233');
+  assert.equal(validForm.normalized.primaryDoctor, 'BS. Trần Hùng');
+  assert.equal(validForm.normalized.primaryDoctorPhone, '0909 555 777');
+
+  const safeVital = {
+    ...INITIAL_VITAL_RECORDS[0],
+    systolic: 120,
+    diastolic: 78,
+    heartRate: 72,
+    spo2: 98,
+    bloodGlucose: 95,
+  };
+  const okEval = evaluateEmergencyVitalAlert({
+    bpStatus: 'normal',
+    gluStatus: 'normal',
+    scoreStatus: 'normal',
+    latestVital: safeVital,
+  });
+  assert.equal(okEval.isAlarming, false);
+  assert.equal(okEval.reasons.length, 0);
+
+  const crisisEval = evaluateEmergencyVitalAlert({
+    bpStatus: 'critical',
+    gluStatus: 'normal',
+    scoreStatus: 'critical',
+    latestVital: { ...safeVital, systolic: 185, diastolic: 120, spo2: 89 },
+  });
+  assert.equal(crisisEval.isAlarming, true);
+  assert.ok(crisisEval.reasons.some((r) => r.includes('185/120')));
+  assert.ok(crisisEval.reasons.some((r) => r.includes('SpO2')));
+});
+
+test('Minimal Mode: parseMinimalModeFlag, selectMinimalModeMedications, and buildMinimalModeSummary', async () => {
+  const {
+    parseMinimalModeFlag,
+    selectMinimalModeMedications,
+    buildMinimalModeSummary,
+  } = await import('../services/minimalModeService');
+
+  assert.equal(parseMinimalModeFlag('true'), true);
+  assert.equal(parseMinimalModeFlag('1'), true);
+  assert.equal(parseMinimalModeFlag('false'), false);
+  assert.equal(parseMinimalModeFlag(null), false);
+
+  const overview = selectMinimalModeMedications([
+    {
+      id: 'm1',
+      medicationName: 'Đã uống sáng',
+      dosage: '1 viên',
+      purpose: 'Tim mạch',
+      frequency: 'Hàng ngày',
+      timeSlot: '07:00',
+      mealInstruction: 'Sau ăn 30 phút',
+      takenToday: true,
+      remainingPills: 10,
+      totalPills: 30,
+      reminderEnabled: true,
+    },
+    {
+      id: 'm2',
+      medicationName: 'Chiều tối',
+      dosage: '1 viên',
+      purpose: 'Mỡ máu',
+      frequency: 'Hàng ngày',
+      timeSlot: '20:00',
+      mealInstruction: 'Trước khi ngủ',
+      takenToday: false,
+      remainingPills: 10,
+      totalPills: 30,
+      reminderEnabled: true,
+    },
+    {
+      id: 'm3',
+      medicationName: 'Trưa nay',
+      dosage: '1 viên',
+      purpose: 'Vitamin',
+      frequency: 'Hàng ngày',
+      timeSlot: '12:00',
+      mealInstruction: 'Cùng bữa ăn',
+      takenToday: false,
+      remainingPills: 10,
+      totalPills: 30,
+      reminderEnabled: true,
+    },
+  ]);
+
+  assert.equal(overview.takenCount, 1);
+  assert.equal(overview.totalCount, 3);
+  assert.equal(overview.remainingCount, 2);
+  // Untaken earliest time first, taken last
+  assert.equal(overview.orderedMedications[0].id, 'm3');
+  assert.equal(overview.orderedMedications[1].id, 'm2');
+  assert.equal(overview.orderedMedications[2].id, 'm1');
+
+  const summary = buildMinimalModeSummary({
+    latestVital: { ...INITIAL_VITAL_RECORDS[0], systolic: 182, diastolic: 112, heartRate: 88, spo2: 97, time: '14:05' },
+    bpEval: { status: 'critical', label: 'Tăng huyết áp khẩn cấp', recommendation: 'Nghỉ ngơi' },
+    medications: overview.orderedMedications,
+    emergencyAlert: { isAlarming: true, reasons: ['Huyết áp cao (182/112 mmHg)'] },
+  });
+  assert.equal(summary.bpText, '182/112');
+  assert.equal(summary.isAlarming, true);
+  assert.equal(summary.medOverview.remainingCount, 2);
+});
+
+test('Voice Feedback: parseVoiceFeedbackFlag, selectPreferredVietnameseVoice, buildVitalRecordedSpeechText, and buildMedicationConfirmedSpeechText', async () => {
+  const {
+    parseVoiceFeedbackFlag,
+    selectPreferredVietnameseVoice,
+    buildVitalRecordedSpeechText,
+    buildMedicationConfirmedSpeechText,
+  } = await import('../services/speechFeedbackService');
+
+  assert.equal(parseVoiceFeedbackFlag(null), true);
+  assert.equal(parseVoiceFeedbackFlag('true'), true);
+  assert.equal(parseVoiceFeedbackFlag('false'), false);
+  assert.equal(parseVoiceFeedbackFlag('0'), false);
+
+  const chosenVoice = selectPreferredVietnameseVoice([
+    { lang: 'en-US', name: 'English' },
+    { lang: 'vi-VN', name: 'Vietnamese Female' },
+  ]);
+  assert.equal(chosenVoice?.lang, 'vi-VN');
+  assert.equal(selectPreferredVietnameseVoice([{ lang: 'fr-FR', name: 'French' }]), null);
+
+  const normalBpSpeech = buildVitalRecordedSpeechText({
+    systolic: 118,
+    diastolic: 76,
+    heartRate: 68,
+  });
+  assert.ok(normalBpSpeech.includes('118 trên 76'));
+  assert.ok(normalBpSpeech.includes('68'));
+
+  const criticalBpSpeech = buildVitalRecordedSpeechText({
+    systolic: 185,
+    diastolic: 120,
+    heartRate: 92,
+  });
+  assert.ok(criticalBpSpeech.includes('185 trên 120'));
+  assert.ok(criticalBpSpeech.includes('gọi bác sĩ'));
+
+  const partialMedSpeech = buildMedicationConfirmedSpeechText({
+    medicationName: 'Amlodipine 5mg (Kiểm soát huyết áp)',
+    takenToday: true,
+    takenCount: 2,
+    totalCount: 4,
+  });
+  assert.ok(partialMedSpeech.includes('Amlodipine 5mg'));
+  assert.ok(!partialMedSpeech.includes('Kiểm soát huyết áp'));
+  assert.ok(partialMedSpeech.includes('2 trên 4'));
+
+  const allDoneSpeech = buildMedicationConfirmedSpeechText({
+    medicationName: 'Magnesium 400mg',
+    takenToday: true,
+    takenCount: 4,
+    totalCount: 4,
+  });
+  assert.ok(allDoneSpeech.includes('đủ 4 trên 4'));
+
+  const undoSpeech = buildMedicationConfirmedSpeechText({
+    medicationName: 'Vitamin D3',
+    takenToday: false,
+    takenCount: 3,
+    totalCount: 4,
+  });
+  assert.ok(undoSpeech.includes('bỏ đánh dấu'));
+});
+
+test('Nutrition Guidance: buildDashboardNutritionGuidance and filterNutritionFoodItems adapt food suggestions to BP and glucose levels', async () => {
+  const { buildDashboardNutritionGuidance, filterNutritionFoodItems } = await import(
+    '../services/nutritionAdviceService'
+  );
+
+  const emptyGuidance = buildDashboardNutritionGuidance({ vitals: [] });
+  assert.equal(emptyGuidance.hasRecordedVitals, false);
+  assert.ok(emptyGuidance.foodsToEat.length >= 2);
+  assert.ok(emptyGuidance.foodsToAvoid.length >= 2);
+
+  const baseRecord: VitalRecord = {
+    ...INITIAL_VITAL_RECORDS[0],
+    systolic: 118,
+    diastolic: 76,
+    bloodGlucose: 92,
+    glucoseContext: 'fasting',
+  };
+
+  const normalGuidance = buildDashboardNutritionGuidance({
+    vitals: [baseRecord],
+    latestVital: baseRecord,
+  });
+  assert.equal(normalGuidance.hasRecordedVitals, true);
+  assert.equal(normalGuidance.bpSummary.status, 'normal');
+  assert.equal(normalGuidance.glucoseSummary.status, 'normal');
+  assert.ok(normalGuidance.focusTitle.includes('cân bằng'));
+
+  const highBothRecord: VitalRecord = {
+    ...baseRecord,
+    systolic: 152,
+    diastolic: 94,
+    bloodGlucose: 156,
+    glucoseContext: 'fasting',
+  };
+  const highBoth = buildDashboardNutritionGuidance({
+    vitals: [highBothRecord],
+    latestVital: highBothRecord,
+  });
+  assert.equal(highBoth.bpSummary.status, 'critical');
+  assert.equal(highBoth.glucoseSummary.status, 'critical');
+  assert.ok(highBoth.focusTitle.includes('muối'));
+  assert.ok(highBoth.focusTitle.includes('đường'));
+  assert.ok(highBoth.foodsToEat.some((item) => item.name.includes('Gạo lứt')));
+  assert.ok(highBoth.foodsToAvoid.some((item) => item.name.includes('Dưa cà muối')));
+  assert.ok(highBoth.foodsToAvoid.some((item) => item.name.includes('Nước ngọt')));
+
+  const bpOnlyEat = filterNutritionFoodItems(highBoth.foodsToEat, 'bp');
+  assert.ok(bpOnlyEat.every((item) => item.category === 'bp' || item.category === 'both'));
+  const gluOnlyAvoid = filterNutritionFoodItems(highBoth.foodsToAvoid, 'glucose');
+  assert.ok(gluOnlyAvoid.every((item) => item.category === 'glucose' || item.category === 'both'));
+
+  const hypoRecord: VitalRecord = {
+    ...baseRecord,
+    systolic: 84,
+    diastolic: 55,
+    bloodGlucose: 62,
+    glucoseContext: 'fasting',
+  };
+  const hypoGuidance = buildDashboardNutritionGuidance({
+    vitals: [hypoRecord],
+    latestVital: hypoRecord,
+  });
+  assert.equal(hypoGuidance.glucoseSummary.status, 'critical');
+  assert.ok(hypoGuidance.focusTitle.includes('bổ sung đường'));
+  assert.ok(hypoGuidance.foodsToEat.some((item) => item.name.includes('nước đường')));
+});
+
+test('Phone Improvements: buildMedicationAlarmIcs, detectMobileCapabilities, and parseCameraMeterResponse work cleanly', async () => {
+  const { buildMedicationAlarmIcs } = await import('../services/calendarAlarmExportService');
+  const { detectMobileCapabilities, parseCameraMeterResponse } = await import(
+    '../services/mobileDeviceSupportService'
+  );
+
+  const ics = buildMedicationAlarmIcs({
+    medications: INITIAL_MEDICATIONS,
+    patientName: 'Chú Quân',
+    leadMinutes: 10,
+    referenceDate: new Date('2026-11-13T07:00:00Z'),
+  });
+  assert.ok(ics.eventCount >= 1);
+  assert.ok(ics.icsContent.includes('BEGIN:VCALENDAR'));
+  assert.ok(ics.icsContent.includes('RRULE:FREQ=DAILY'));
+  assert.ok(ics.icsContent.includes('TRIGGER:-PT10M'));
+  assert.ok(ics.icsContent.includes('END:VCALENDAR'));
+
+  const iosCaps = detectMobileCapabilities(
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
+    false
+  );
+  assert.equal(iosCaps.isIOS, true);
+  assert.equal(iosCaps.isWebBluetoothAvailable, false);
+  assert.ok(iosCaps.recommendedInputHint.includes('Chụp ảnh máy đo'));
+
+  const androidBleCaps = detectMobileCapabilities(
+    'Mozilla/5.0 (Linux; Android 14) Chrome/128.0.0.0 Mobile Safari/537.36',
+    true
+  );
+  assert.equal(androidBleCaps.isAndroid, true);
+  assert.equal(androidBleCaps.isWebBluetoothAvailable, true);
+
+  const parsedMeter = parseCameraMeterResponse({
+    isEmergency: false,
+    triggerReason: null,
+    mode: 'bp_monitor',
+    bpReading: {
+      systolic: 136,
+      diastolic: 84,
+      heartRate: 76,
+      measurementNote: 'Omron đọc từ ảnh',
+    },
+    confidenceNote: 'Kiểm tra lại',
+    doctorReminder: 'Tham khảo bác sĩ',
+    requiresUserConfirmation: true,
+  });
+  assert.equal(parsedMeter?.systolic, 136);
+  assert.equal(parsedMeter?.diastolic, 84);
+  assert.equal(parsedMeter?.heartRate, 76);
+});
+

@@ -16,6 +16,7 @@ import { PWAInstallBanner } from '../PWAInstallButton';
 import { CompositeIndexCard } from './CompositeIndexCard';
 import { PriorityMetricsGrid } from './PriorityMetricsGrid';
 import { DashboardDailyChecklists } from './DashboardDailyChecklists';
+import { NutritionGuidanceCard } from './NutritionGuidanceCard';
 import { ActiveModule } from '../layout/AppTopHeaderAndNav';
 import { PatientIdentityBar } from '../layout/PatientIdentityBar';
 
@@ -82,6 +83,7 @@ interface DashboardOverviewViewProps {
   onToggleWorkoutScheduleComplete: (id: string) => void;
   onTriggerTestWorkoutPush: () => void;
   onNavigateModule: (module: ActiveModule) => void;
+  onOpenEmergencyCall?: () => void;
 }
 
 /**
@@ -127,6 +129,7 @@ export const DashboardOverviewView: React.FC<DashboardOverviewViewProps> = ({
   onToggleWorkoutScheduleComplete,
   onTriggerTestWorkoutPush,
   onNavigateModule,
+  onOpenEmergencyCall,
 }) => {
   const greeting = buildVietnameseGreeting({
     fullName: profile.fullName,
@@ -136,14 +139,14 @@ export const DashboardOverviewView: React.FC<DashboardOverviewViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* a. Lời chào theo khung giờ + Ngày hôm nay + Dải ưu tiên theo bệnh lý */}
+      {/* a. Lời chào theo khung giờ + Ngày hôm nay + Ưu tiên ngắn gọn */}
       <section
         aria-label="Lời chào và ưu tiên theo dõi hôm nay"
         data-testid="priority-dashboard-banner"
-        className="bg-gradient-to-br from-[#0B5F57] to-[#0F766E] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_10px_28px_-8px_rgba(11,95,87,0.35)] space-y-2.5"
+        className="bg-gradient-to-br from-[#0B5F57] to-[#0F766E] rounded-[20px] p-4 sm:p-5 text-white shadow-[0_10px_28px_-8px_rgba(11,95,87,0.35)] space-y-2"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-100">
               <Calendar className="w-4 h-4 shrink-0" />
               <span data-testid="dashboard-today-date">{greeting.todayFormatted}</span>
@@ -155,18 +158,11 @@ export const DashboardOverviewView: React.FC<DashboardOverviewViewProps> = ({
               {greeting.greetingTitle}
             </h1>
           </div>
-          <span className="px-3 py-1 rounded-xl bg-white/15 backdrop-blur-xs border border-white/25 text-xs sm:text-sm font-bold text-white break-words">
-            Sổ theo dõi cá nhân · Không thay thế bác sĩ
-          </span>
-        </div>
-
-        <div className="pt-2 border-t border-white/15 flex items-start gap-2 text-sm text-teal-50 leading-relaxed">
-          <HeartHandshake className="w-5 h-5 text-amber-200 shrink-0 mt-0.5" />
-          <span>
-            <strong data-testid="priority-dashboard-title" className="text-white">
-              {priorityDashboardConfig.priorityBannerTitle}:
-            </strong>{' '}
-            {priorityDashboardConfig.priorityReason}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 text-xs sm:text-sm font-bold text-white">
+            <HeartHandshake className="w-4 h-4 text-amber-200 shrink-0" />
+            <span data-testid="priority-dashboard-title">
+              {priorityDashboardConfig.priorityBannerTitle}
+            </span>
           </span>
         </div>
       </section>
@@ -178,6 +174,7 @@ export const DashboardOverviewView: React.FC<DashboardOverviewViewProps> = ({
         bpEval={bpEval}
         gluEval={gluEval}
         medAdherencePercent={medAdherence.adherencePercent}
+        onOpenEmergencyCall={onOpenEmergencyCall}
       />
 
       {/* c. Lưới 2×2 các ô chỉ số lớn */}
@@ -212,6 +209,14 @@ export const DashboardOverviewView: React.FC<DashboardOverviewViewProps> = ({
         onToggleWorkoutScheduleComplete={onToggleWorkoutScheduleComplete}
         onTriggerTestWorkoutPush={onTriggerTestWorkoutPush}
         onAddWater={onAddWater}
+        onNavigateModule={onNavigateModule}
+        onOpenLogModal={onOpenLogModal}
+      />
+
+      {/* Gợi ý thực phẩm Nên ăn / Nên tránh theo huyết áp & đường huyết */}
+      <NutritionGuidanceCard
+        vitals={vitals}
+        latestVital={latestVital}
         onNavigateModule={onNavigateModule}
         onOpenLogModal={onOpenLogModal}
       />

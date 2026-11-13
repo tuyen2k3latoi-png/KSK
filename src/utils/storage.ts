@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   ND13_CONSENT: 'vitapulse_nd13_consent_v1',
   PRIVACY_CONSENT: 'vitapulse_nd13_consent_v1',
   FONT_SIZE_MODE: 'vitapulse_font_size_mode_v1',
+  MINIMAL_MODE: 'vitapulse_minimal_mode_v1',
+  VOICE_FEEDBACK: 'vitapulse_voice_feedback_v1',
   PWA_BANNER_DISMISSED: 'vitapulse_pwa_banner_dismissed_v1',
   ACCOUNT_ID: 'vitapulse_account_id_v2',
   PROFILE: 'vitapulse_profile_v2',

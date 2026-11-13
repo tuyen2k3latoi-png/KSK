@@ -217,8 +217,8 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             <strong className="font-mono-tabular">demo@123</strong>.
           </p>
           <p>
-            • Nếu bạn đã sao lưu qua Google: hãy bấm nút{' '}
-            <strong>“Đăng nhập bằng Google”</strong> để mở lại sổ sức khỏe ngay mà không cần nhớ mật khẩu.
+            • Nếu bạn cần tạo sổ sức khỏe mới bằng số điện thoại: hãy đóng cửa sổ này và chọn tab{' '}
+            <strong>“Đăng ký”</strong> ở phía trên.
           </p>
         </div>
 

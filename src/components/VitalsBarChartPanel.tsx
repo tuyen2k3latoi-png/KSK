@@ -47,7 +47,7 @@ const BAR_METRIC_CONFIGS: Record<BarMetricGroup, BarMetricConfig> = {
   bp: {
     id: 'bp',
     tabLabel: 'Huyết áp',
-    title: 'Biểu đồ 7 ngày gần nhất: Huyết áp (mmHg)',
+    title: 'Biểu đồ 7 ngày',
     unitLabel: 'mmHg',
     primaryKey: 'systolic',
     primaryName: 'Tâm thu (mmHg)',
@@ -56,26 +56,26 @@ const BAR_METRIC_CONFIGS: Record<BarMetricGroup, BarMetricConfig> = {
     secondaryName: 'Tâm trương (mmHg)',
     secondaryColor: '#0284C7',
     referenceValue: 120,
-    referenceLabel: 'Ngưỡng chuẩn 120 mmHg',
+    referenceLabel: 'Chuẩn 120',
   },
   cardio: {
     id: 'cardio',
-    tabLabel: 'Nhịp tim & Oxy',
-    title: 'Biểu đồ 7 ngày gần nhất: Nhịp tim & Oxy máu SpO2',
+    tabLabel: 'Nhịp tim & SpO2',
+    title: 'Biểu đồ 7 ngày',
     unitLabel: 'bpm / %',
     primaryKey: 'heartRate',
     primaryName: 'Nhịp tim (bpm)',
     primaryColor: '#DC2626',
     secondaryKey: 'spo2',
-    secondaryName: 'Oxy máu SpO2 (%)',
+    secondaryName: 'SpO2 (%)',
     secondaryColor: '#0F766E',
     referenceValue: 95,
-    referenceLabel: 'SpO2 tối thiểu 95%',
+    referenceLabel: 'SpO2 ≥ 95%',
   },
   metabolic: {
     id: 'metabolic',
     tabLabel: 'Đường huyết',
-    title: 'Biểu đồ 7 ngày gần nhất: Đường huyết & Cân nặng',
+    title: 'Biểu đồ 7 ngày',
     unitLabel: 'mg/dL / kg',
     primaryKey: 'bloodGlucose',
     primaryName: 'Đường huyết (mg/dL)',
@@ -84,15 +84,15 @@ const BAR_METRIC_CONFIGS: Record<BarMetricGroup, BarMetricConfig> = {
     secondaryName: 'Cân nặng (kg)',
     secondaryColor: '#0B5F57',
     referenceValue: 100,
-    referenceLabel: 'Đường đói chuẩn < 100 mg/dL',
+    referenceLabel: 'Đói < 100',
   },
   activity: {
     id: 'activity',
-    tabLabel: 'Bước chân & Ngủ',
-    title: 'Biểu đồ 7 ngày gần nhất: Bước chân & Giấc ngủ',
+    tabLabel: 'Bước & Ngủ',
+    title: 'Biểu đồ 7 ngày',
     unitLabel: 'Bước / Giờ',
     primaryKey: 'steps',
-    primaryName: 'Số bước chân (bước)',
+    primaryName: 'Bước chân',
     primaryColor: '#0F766E',
     secondaryKey: 'sleepHours',
     secondaryName: 'Giấc ngủ (giờ)',
@@ -118,15 +118,23 @@ export const VitalsBarChartPanel: React.FC<VitalsBarChartPanelProps> = ({ record
     };
   });
 
+  const activeAverageLabel =
+    selectedGroup === 'bp'
+      ? `Trung bình: ${averages.systolic}/${averages.diastolic} mmHg`
+      : selectedGroup === 'cardio'
+      ? `Trung bình: ${averages.heartRate} bpm · ${averages.spo2}%`
+      : selectedGroup === 'metabolic'
+      ? `Trung bình: ${averages.bloodGlucose} mg/dL · ${averages.weightKg} kg`
+      : `Trung bình: ${averages.steps.toLocaleString('vi-VN')} bước · ${averages.sleepHours} giờ`;
+
   return (
     <Card
       as="section"
-      ariaLabel="Bảng điều khiển biểu đồ thanh chỉ số sinh tồn 7 ngày"
+      ariaLabel="Biểu đồ 7 ngày gần nhất"
       testId="vitals-recharts-bar-panel"
-      className="space-y-4"
+      className="space-y-3.5"
     >
-      {/* Tiêu đề & Thanh chọn nhóm chỉ số */}
-      <div className="flex flex-col gap-3 pb-3 border-b border-stone-100">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#0F766E] shrink-0" />
@@ -134,14 +142,17 @@ export const VitalsBarChartPanel: React.FC<VitalsBarChartPanelProps> = ({ record
               {config.title}
             </h2>
           </div>
-          <span className="text-sm font-medium text-stone-600">
-            So sánh 7 lần đo gần nhất
+          <span
+            data-testid="bar-avg-bp"
+            className="text-sm font-bold text-[#0B5F57] bg-[#FAF7F2] px-3 py-1 rounded-xl border border-stone-200 tabular-nums"
+          >
+            {activeAverageLabel}
           </span>
         </div>
 
         <div
           role="tablist"
-          aria-label="Chọn nhóm chỉ số biểu đồ thanh"
+          aria-label="Chọn chỉ số xem biểu đồ"
           className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-[#FAF7F2] p-1.5 rounded-2xl border border-stone-200/80"
         >
           {(Object.keys(BAR_METRIC_CONFIGS) as BarMetricGroup[]).map((key) => {
@@ -155,7 +166,7 @@ export const VitalsBarChartPanel: React.FC<VitalsBarChartPanelProps> = ({ record
                 aria-selected={isActive}
                 data-testid={`bar-tab-${key}`}
                 onClick={() => setSelectedGroup(key)}
-                className={`min-h-[44px] px-3 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap text-center cursor-pointer ${
+                className={`min-h-[42px] px-3 py-1.5 rounded-xl text-sm font-bold transition-colors whitespace-nowrap text-center cursor-pointer ${
                   isActive
                     ? 'bg-[#0F766E] text-white shadow-2xs'
                     : 'text-[#1F2937] hover:bg-white'
@@ -168,45 +179,8 @@ export const VitalsBarChartPanel: React.FC<VitalsBarChartPanelProps> = ({ record
         </div>
       </div>
 
-      {/* Dải trung bình 7 ngày (Dùng đường kẻ mảnh thay vì hộp lồng hộp rườm rà) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-1 pb-2 border-b border-stone-100">
-        <div>
-          <p className="text-sm text-stone-600">Trung bình Huyết áp</p>
-          <p
-            data-testid="bar-avg-bp"
-            className="text-lg font-extrabold text-[#1F2937] tabular-nums mt-0.5"
-          >
-            {averages.systolic}/{averages.diastolic}{' '}
-            <span className="text-sm font-semibold text-stone-500">mmHg</span>
-          </p>
-        </div>
-        <div>
-          <p className="text-sm text-stone-600">Trung bình Nhịp tim &amp; Oxy</p>
-          <p className="text-lg font-extrabold text-[#1F2937] tabular-nums mt-0.5">
-            {averages.heartRate}{' '}
-            <span className="text-sm font-semibold text-stone-500">bpm</span> ·{' '}
-            <span className="text-[#0F766E]">{averages.spo2}%</span>
-          </p>
-        </div>
-        <div>
-          <p className="text-sm text-stone-600">Trung bình Đường huyết</p>
-          <p className="text-lg font-extrabold text-[#1F2937] tabular-nums mt-0.5">
-            {averages.bloodGlucose}{' '}
-            <span className="text-sm font-semibold text-stone-500">mg/dL</span> ·{' '}
-            <span className="text-[#0B5F57]">{averages.weightKg} kg</span>
-          </p>
-        </div>
-        <div>
-          <p className="text-sm text-stone-600">Trung bình Bước chân &amp; Ngủ</p>
-          <p className="text-lg font-extrabold text-[#1F2937] tabular-nums mt-0.5">
-            {averages.steps.toLocaleString('vi-VN')} ·{' '}
-            <span className="text-[#0F766E]">{averages.sleepHours} giờ</span>
-          </p>
-        </div>
-      </div>
-
       {/* Biểu đồ cột Recharts (font Be Vietnam Pro, ngày dd/mm) */}
-      <div className="w-full h-64 sm:h-72 pt-2">
+      <div className="w-full h-60 sm:h-68 pt-1">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartItems}

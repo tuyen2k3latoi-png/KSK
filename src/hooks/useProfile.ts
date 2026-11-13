@@ -18,7 +18,10 @@ import {
   STORAGE_KEYS,
   writeStorageIfChanged,
 } from '../utils/storage';
-import { initAuth } from '../services/firebaseService';
+import { initAuth, syncUserProfileToFirestore } from '../services/firebaseService';
+import { EmergencyContactInput } from '../services/emergencyService';
+import { parseMinimalModeFlag } from '../services/minimalModeService';
+import { parseVoiceFeedbackFlag } from '../services/speechFeedbackService';
 
 export function useProfile() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -51,6 +54,28 @@ export function useProfile() {
     }
     setFontSizeModeState(mode);
   };
+
+  const [isMinimalMode, setIsMinimalModeState] = useState<boolean>(() =>
+    parseMinimalModeFlag(readStorageString(STORAGE_KEYS.MINIMAL_MODE, 'false'))
+  );
+
+  const setMinimalMode = (enabled: boolean) => {
+    setIsMinimalModeState(enabled);
+    writeStorageIfChanged(STORAGE_KEYS.MINIMAL_MODE, enabled ? 'true' : 'false');
+  };
+
+  const toggleMinimalMode = () => setMinimalMode(!isMinimalMode);
+
+  const [isVoiceFeedbackEnabled, setIsVoiceFeedbackState] = useState<boolean>(() =>
+    parseVoiceFeedbackFlag(readStorageString(STORAGE_KEYS.VOICE_FEEDBACK, 'true'))
+  );
+
+  const setVoiceFeedbackEnabled = (enabled: boolean) => {
+    setIsVoiceFeedbackState(enabled);
+    writeStorageIfChanged(STORAGE_KEYS.VOICE_FEEDBACK, enabled ? 'true' : 'false');
+  };
+
+  const toggleVoiceFeedback = () => setVoiceFeedbackEnabled(!isVoiceFeedbackEnabled);
 
   const [currentAccountId, setCurrentAccountId] = useState<string>(() =>
     readStorageString(STORAGE_KEYS.ACCOUNT_ID, 'citizen-nguyen-minh-quan')
@@ -144,6 +169,24 @@ export function useProfile() {
     ? rawBhytCode
     : maskSensitiveIdentifier(rawBhytCode, 'bhyt');
 
+  const handleSaveEmergencyContacts = (
+    contacts: EmergencyContactInput,
+    waterIntakeMl: number
+  ) => {
+    const updated: UserMedicalProfile = {
+      ...profile,
+      emergencyContactName: contacts.emergencyContactName,
+      emergencyContactPhone: contacts.emergencyContactPhone,
+      primaryDoctor: contacts.primaryDoctor,
+      primaryDoctorPhone: contacts.primaryDoctorPhone,
+    };
+    setProfile(updated);
+    writeStorageIfChanged(STORAGE_KEYS.PROFILE, updated);
+    if (cloudUser) {
+      void syncUserProfileToFirestore(cloudUser.uid, updated, waterIntakeMl);
+    }
+  };
+
   return {
     isAuthenticated,
     setIsAuthenticated,
@@ -151,6 +194,12 @@ export function useProfile() {
     setNd13Consent,
     fontSizeMode,
     setFontSizeMode,
+    isMinimalMode,
+    setMinimalMode,
+    toggleMinimalMode,
+    isVoiceFeedbackEnabled,
+    setVoiceFeedbackEnabled,
+    toggleVoiceFeedback,
     currentAccountId,
     setCurrentAccountId,
     profile,
@@ -169,5 +218,6 @@ export function useProfile() {
     handleAcceptNd13Consent,
     handleWithdrawNd13Consent,
     handleAddBhytVisit,
+    handleSaveEmergencyContacts,
   };
 }

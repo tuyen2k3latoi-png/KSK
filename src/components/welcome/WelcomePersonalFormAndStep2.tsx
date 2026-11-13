@@ -235,12 +235,12 @@ export const WelcomeStep2CloudBackup: React.FC<WelcomeStep2CloudBackupProps> = (
           Bước 2 / 2 · Tùy chọn Sao lưu Đám mây
         </span>
         <h2 className="text-lg sm:text-xl font-bold text-slate-900 break-words">
-          Sao lưu Hồ sơ Sức khỏe qua Google (Không bắt buộc)
+          Lưu trữ Hồ sơ Sức khỏe trên thiết bị
         </h2>
         <p className="text-sm text-slate-700 leading-relaxed break-words">
           Bạn đã chọn hồ sơ:{' '}
           <strong className="text-slate-900">{pendingAccount.profile.fullName}</strong> (
-          {pendingAccount.isDemo ? 'HỒ SƠ DEMO' : 'HỒ SƠ CỦA TÔI'}). Bạn có thể đăng nhập Google để đồng bộ dữ liệu lên đám mây cá nhân hoặc bỏ qua để vào thẳng ứng dụng.
+          {pendingAccount.isDemo ? 'HỒ SƠ DEMO' : 'HỒ SƠ CỦA TÔI'}). Dữ liệu được lưu an toàn trực tiếp trên máy của bạn.
         </p>
       </div>
 
@@ -269,28 +269,13 @@ export const WelcomeStep2CloudBackup: React.FC<WelcomeStep2CloudBackupProps> = (
       </div>
 
       <div className="space-y-2.5 pt-1">
-        {cloudUser ? (
+        {cloudUser && (
           <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-950 flex items-center gap-2 break-words">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>
-              Đã kết nối Google Cloud (<strong>{cloudUser.email}</strong>).
+              Đã kết nối đồng bộ đám mây (<strong>{cloudUser.email}</strong>).
             </span>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onGoogleLoginAndEnter}
-            disabled={isGoogleLoading}
-            data-testid="welcome-google-login-btn"
-            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 border-2 border-teal-600 text-teal-900 text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
-          >
-            <Cloud className="w-4 h-4 text-teal-700 shrink-0" />
-            <span>
-              {isGoogleLoading
-                ? 'Đang kết nối Google...'
-                : 'Đăng nhập Google để sao lưu đám mây (Tùy chọn)'}
-            </span>
-          </button>
         )}
 
         <button

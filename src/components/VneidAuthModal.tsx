@@ -21,7 +21,6 @@ import {
 } from '../types/health';
 import { CITIZEN_VNEID_ACCOUNTS } from '../data/seedHealthData';
 import { validateVneidOrBhytInput } from '../utils/healthCalculations';
-import { googleSignIn } from '../services/firebaseService';
 
 interface VneidAuthModalProps {
   isOpen: boolean;
@@ -322,21 +321,6 @@ export const VneidAuthModal: React.FC<VneidAuthModalProps> = ({
     setFormError(null);
     onSelectCitizenAccount(newAccount);
     onClose();
-  };
-
-  const handleGoogleConnect = async () => {
-    setIsGoogleLoading(true);
-    setFormError(null);
-    try {
-      const res = await googleSignIn();
-      onGoogleAuthSuccess(res.user, Boolean(res.accessToken));
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Không thể kết nối tài khoản Google.'
-      );
-    } finally {
-      setIsGoogleLoading(false);
-    }
   };
 
   return (
@@ -668,27 +652,12 @@ export const VneidAuthModal: React.FC<VneidAuthModalProps> = ({
             </form>
           )}
 
-          {/* Optional Cloud Sync Strip */}
+          {/* Local storage note */}
           <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-slate-600">
-              <strong className="text-slate-800">Sao lưu Đám mây Cá nhân:</strong>{' '}
-              {cloudUser
-                ? `Đang kết nối Google (${cloudUser.email}) — Sổ khám VNeID/BHYT được tự động sao lưu.`
-                : 'Bạn có thể kết nối thêm tài khoản Google để cất giữ hồ sơ BHYT khi đổi điện thoại.'}
+              <strong className="text-slate-800">Bảo mật Hồ sơ Cá nhân:</strong>{' '}
+              Sổ khám VNeID/BHYT được lưu trữ trực tiếp trên máy hoặc đồng bộ qua tài khoản số điện thoại.
             </div>
-            {!cloudUser && (
-              <button
-                type="button"
-                onClick={handleGoogleConnect}
-                disabled={isGoogleLoading}
-                className="min-h-[38px] px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>
-                  {isGoogleLoading ? 'Đang kết nối...' : 'Kết nối thêm Google Cloud'}
-                </span>
-              </button>
-            )}
           </div>
         </div>
       </div>

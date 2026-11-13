@@ -56,7 +56,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
   const weightTrend = computeVitalTrend(recordsForTrend, (v) => v.weightKg, 0.3);
 
   const renderMetricTile = (cardId: PriorityMetricCardId, idx: number) => {
-    const priorityBadge = idx < 2 ? `Ưu tiên #${idx + 1}` : undefined;
+    const priorityBadge = idx === 0 ? 'Quan trọng nhất' : undefined;
 
     switch (cardId) {
       case 'bp':
@@ -76,7 +76,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             status={bpEval.status}
             statusLabel={bpEval.label}
             trend={bpTrend}
-            footerNode="Ngưỡng tham khảo: ≤ 120/80 mmHg"
+            footerNode="Mục tiêu ≤ 120/80 mmHg"
           />
         );
 
@@ -97,8 +97,8 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             trend={gluTrend}
             footerNode={
               latestVital.glucoseContext === 'fasting'
-                ? 'Đo lúc đói (Chuẩn < 100 mg/dL)'
-                : 'Đo sau ăn 2 giờ (< 140 mg/dL)'
+                ? 'Lúc đói (< 100)'
+                : 'Sau ăn (< 140)'
             }
           />
         );
@@ -108,7 +108,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
           <StatTile
             key="hr_spo2"
             testId="metric-card-hr_spo2"
-            title="Nhịp tim & Oxy máu"
+            title="Nhịp tim & Oxy"
             priorityBadge={priorityBadge}
             icon={<Heart className="w-5 h-5 text-[#DC2626]" />}
             valueNode={
@@ -121,7 +121,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             status="normal"
             statusLabel={hrEval.label}
             trend={hrTrend}
-            footerNode="SpO2 bình thường từ 95% – 100%"
+            footerNode="SpO2 chuẩn ≥ 95%"
           />
         );
 
@@ -130,13 +130,13 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
           <StatTile
             key="steps_water"
             testId="metric-card-steps_water"
-            title="Bước chân hôm nay"
+            title="Đi bộ hôm nay"
             priorityBadge={priorityBadge}
             icon={<Footprints className="w-5 h-5 text-[#0F766E]" />}
             valueNode={<span>{latestVital.steps.toLocaleString('vi-VN')}</span>}
             unit="bước"
             status={latestVital.steps >= 5000 ? 'normal' : 'warning'}
-            statusLabel={latestVital.steps >= 5000 ? 'Vận động tốt' : 'Cần đi bộ thêm'}
+            statusLabel={latestVital.steps >= 5000 ? 'Vận động tốt' : 'Nên đi thêm'}
             trend={stepsTrend}
             actionNode={
               <button
@@ -147,7 +147,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
                 +250 ml nước
               </button>
             }
-            footerNode={`Đã uống ${waterIntakeMl} ml nước · Tiêu hao ${calorieSummary.netCalories} kcal`}
+            footerNode={`Nước: ${waterIntakeMl} ml`}
           />
         );
 
@@ -156,7 +156,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
           <StatTile
             key="sleep_temp"
             testId="metric-card-sleep_temp"
-            title="Giấc ngủ đêm qua"
+            title="Giấc ngủ"
             priorityBadge={priorityBadge}
             icon={<Moon className="w-5 h-5 text-[#0F766E]" />}
             valueNode={<span>{latestVital.sleepHours}</span>}
@@ -164,7 +164,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             status={latestVital.sleepHours >= 6.5 ? 'normal' : 'warning'}
             statusLabel={latestVital.sleepHours >= 6.5 ? 'Ngủ đủ giấc' : 'Ngủ hơi ít'}
             trend={sleepTrend}
-            footerNode={`Thân nhiệt: ${latestVital.temperatureC} °C`}
+            footerNode={`Thân nhiệt ${latestVital.temperatureC} °C`}
           />
         );
 
@@ -173,7 +173,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
           <StatTile
             key="weight_bmi"
             testId="metric-card-weight_bmi"
-            title="Cân nặng & BMI"
+            title="Cân nặng"
             priorityBadge={priorityBadge}
             icon={<Scale className="w-5 h-5 text-[#0F766E]" />}
             valueNode={
@@ -186,7 +186,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             status="normal"
             statusLabel={bmiEval.label}
             trend={weightTrend}
-            footerNode="Theo chuẩn thể trạng người châu Á"
+            footerNode="Cân đối"
           />
         );
 
@@ -196,14 +196,14 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
           <StatTile
             key="nutrition_meds"
             testId="metric-card-nutrition_meds"
-            title="Thuốc & Dinh dưỡng"
+            title="Uống thuốc"
             priorityBadge={priorityBadge}
             icon={<Utensils className="w-5 h-5 text-[#0F766E]" />}
             valueNode={<span>{medAdherence.adherencePercent}%</span>}
-            unit="tuân thủ thuốc"
+            unit={`${medAdherence.takenCount}/${medAdherence.totalCount} cữ`}
             status={medAdherence.adherencePercent >= 80 ? 'normal' : 'warning'}
-            statusLabel={`Đã uống ${medAdherence.takenCount}/${medAdherence.totalCount} cữ`}
-            footerNode={`Nạp ${calorieSummary.totalIntake} kcal · Đạm ${calorieSummary.proteinG}g`}
+            statusLabel={medAdherence.adherencePercent >= 80 ? 'Đúng giờ' : 'Cần uống thêm'}
+            footerNode={`Ăn ${calorieSummary.totalIntake} kcal`}
           />
         );
     }
@@ -217,7 +217,7 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
   ]);
 
   return (
-    <section aria-label="Lưới 2x2 các chỉ số sức khỏe chính" className="space-y-3">
+    <section aria-label="Các chỉ số sức khỏe chính" className="space-y-3">
       <div
         data-testid="priority-metrics-grid"
         className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4"
@@ -240,12 +240,10 @@ export const PriorityMetricsGrid: React.FC<PriorityMetricsGridProps> = ({
             type="button"
             onClick={() => setShowMoreMetrics((prev) => !prev)}
             data-testid="toggle-more-metrics-btn"
-            className="min-h-[48px] px-5 py-2.5 rounded-2xl bg-white hover:bg-stone-50 border border-stone-200/90 text-sm font-bold text-[#0B5F57] inline-flex items-center gap-2 shadow-2xs cursor-pointer transition-colors"
+            className="min-h-[44px] px-4 py-2 rounded-2xl bg-white hover:bg-stone-50 border border-stone-200/90 text-sm font-bold text-[#0B5F57] inline-flex items-center gap-2 shadow-2xs cursor-pointer transition-colors"
           >
             <span>
-              {showMoreMetrics
-                ? 'Thu gọn chỉ hiển thị 4 chỉ số chính (2×2)'
-                : 'Xem thêm Nhịp tim, Cân nặng & Dinh dưỡng'}
+              {showMoreMetrics ? 'Thu gọn chỉ số' : 'Xem thêm chỉ số khác'}
             </span>
             <ChevronDown
               className={`w-4 h-4 transition-transform ${

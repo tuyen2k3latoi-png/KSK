@@ -225,7 +225,7 @@ export async function signInWithPhoneFirebase(
       return {
         success: false,
         normalizedPhone: phoneCheck.normalizedPhone,
-        error: 'Số điện thoại này chưa được kích hoạt trên đám mây. Bạn có thể bấm "Điền tự động tài khoản demo" hoặc "Đăng nhập bằng Google".',
+        error: 'Số điện thoại này chưa được kích hoạt trên đám mây. Bạn có thể bấm "Thử ngay tài khoản demo" hoặc chuyển sang tab "Đăng ký".',
       };
     }
     return { success: false, normalizedPhone: phoneCheck.normalizedPhone, error: translated };

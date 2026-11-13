@@ -60,6 +60,7 @@ export interface UserMedicalProfile {
   emergencyContactName: string;
   emergencyContactPhone: string;
   primaryDoctor: string;
+  primaryDoctorPhone?: string;
   hospitalName: string;
   dailyCalorieGoal: number;
   dailyWaterGoalMl: number;

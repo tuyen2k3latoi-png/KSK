@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { VitalRecord } from '../types/health';
 import {
   classifyBloodGlucose,
   classifyBloodPressure,
   validateVitalEntry,
 } from '../utils/healthCalculations';
-import { Activity, Bluetooth, CheckCircle2, X } from 'lucide-react';
+import {
+  detectMobileCapabilities,
+  parseCameraMeterResponse,
+} from '../services/mobileDeviceSupportService';
+import { ExtractedMedicalImageResponse } from '../utils/aiHealthGuardrails';
+import { Activity, Bluetooth, Camera, CheckCircle2, X } from 'lucide-react';
 
 interface LogVitalModalProps {
   isOpen: boolean;
@@ -34,6 +39,11 @@ export const LogVitalModal: React.FC<LogVitalModalProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSyncingWearable, setIsSyncingWearable] = useState(false);
+  const [isScanningPhoto, setIsScanningPhoto] = useState(false);
+  const [cameraScanNotice, setCameraScanNotice] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+
+  const mobileCaps = useMemo(() => detectMobileCapabilities(), []);
 
   if (!isOpen) return null;
 
@@ -53,6 +63,7 @@ export const LogVitalModal: React.FC<LogVitalModalProps> = ({
   const handleSimulateBleSync = () => {
     setIsSyncingWearable(true);
     setErrorMessage(null);
+    setCameraScanNotice(null);
     setTimeout(() => {
       setSystolic('119');
       setDiastolic('76');
@@ -66,6 +77,60 @@ export const LogVitalModal: React.FC<LogVitalModalProps> = ({
       setNotes('Đồng bộ tự động qua giao thức Bluetooth GATT (Heart Rate & Pulse Oximeter Profile).');
       setIsSyncingWearable(false);
     }, 350);
+  };
+
+  const handleMeterPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsScanningPhoto(true);
+    setErrorMessage(null);
+    setCameraScanNotice(null);
+
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Không thể đọc ảnh đã chọn.'));
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch('/api/ai/extract-medical-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType: file.type || 'image/jpeg',
+          mode: 'bp_monitor',
+        }),
+      });
+
+      const data = (await response.json()) as ExtractedMedicalImageResponse & { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể đọc số từ ảnh máy đo.');
+      }
+
+      const parsed = parseCameraMeterResponse(data);
+      if (!parsed) {
+        throw new Error('Không nhận diện được chỉ số huyết áp từ ảnh. Vui lòng chụp rõ màn hình máy đo hoặc nhập tay.');
+      }
+
+      setSystolic(String(parsed.systolic));
+      setDiastolic(String(parsed.diastolic));
+      setHeartRate(String(parsed.heartRate));
+      setDeviceSource('Máy đo Omron');
+      setNotes(parsed.note);
+      setCameraScanNotice(
+        `Đã điền từ ảnh (${parsed.systolic}/${parsed.diastolic} mmHg · ${parsed.heartRate} bpm). ${parsed.confidenceNote}`
+      );
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Lỗi khi xử lý ảnh chụp máy đo.'
+      );
+    } finally {
+      setIsScanningPhoto(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,21 +214,57 @@ export const LogVitalModal: React.FC<LogVitalModalProps> = ({
           </button>
         </div>
 
-        {/* Wearable BLE Quick Sync Bar */}
-        <div className="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="text-xs text-slate-600">
-            <span className="font-semibold text-slate-800">Thiết bị Đeo (IoT Wearable BLE):</span>{' '}
-            Đồng bộ nhanh Nhịp tim, SpO2, Giấc ngủ và Bước chân.
+        {/* Quick Capture: Camera Meter OCR (iPhone & Android) + Wearable BLE */}
+        <div className="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="text-xs text-slate-700 leading-relaxed">
+              <span className="font-semibold text-slate-900 block">
+                Điền nhanh từ máy đo / đồng hồ:
+              </span>
+              <span data-testid="modal-mobile-input-hint">{mobileCaps.recommendedInputHint}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                data-testid="modal-camera-file-input"
+                onChange={handleMeterPhotoSelected}
+                className="hidden"
+              />
+              <button
+                type="button"
+                data-testid="modal-camera-scan-btn"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isScanningPhoto}
+                className="min-h-[42px] px-3.5 py-2 rounded-lg text-xs font-bold bg-[#0F766E] hover:bg-[#0B5F57] text-white transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <Camera className="w-4 h-4 shrink-0" />
+                <span>{isScanningPhoto ? 'Đang đọc ảnh...' : 'Chụp ảnh máy đo'}</span>
+              </button>
+              <button
+                type="button"
+                data-testid="modal-ble-sync-btn"
+                onClick={handleSimulateBleSync}
+                disabled={isSyncingWearable}
+                className="min-h-[42px] px-3.5 py-2 rounded-lg text-xs font-medium bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <Bluetooth className="w-3.5 h-3.5 text-teal-600" />
+                {isSyncingWearable ? 'Đang đọc cảm biến...' : 'Đồng bộ mẫu BLE'}
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={handleSimulateBleSync}
-            disabled={isSyncingWearable}
-            className="min-h-[40px] px-3.5 py-2 rounded-lg text-xs font-medium bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
-          >
-            <Bluetooth className="w-3.5 h-3.5 text-teal-600" />
-            {isSyncingWearable ? 'Đang đọc cảm biến...' : 'Đồng bộ Smartwatch BLE'}
-          </button>
+
+          {cameraScanNotice && (
+            <div
+              role="status"
+              data-testid="modal-camera-scan-status"
+              className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-900"
+            >
+              {cameraScanNotice}
+            </div>
+          )}
         </div>
 
         {errorMessage && (
